@@ -42,7 +42,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [184, 12]
+    coordinate: [8, 96.0]
     rotation: 0
     state: enabled
 - name: analog_sig_source_x_0
@@ -60,7 +60,7 @@ blocks:
     samp_rate: samp_rate
     showports: 'False'
     type: complex
-    waveform: analog.GR_SQR_WAVE
+    waveform: analog.GR_COS_WAVE
   states:
     bus_sink: false
     bus_source: false
