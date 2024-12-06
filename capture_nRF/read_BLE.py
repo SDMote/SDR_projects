@@ -14,10 +14,11 @@ inst_freq = np.diff(np.unwrap(np.angle(data)))
 magnitude = np.abs(data[:-1])
 
 # Sampling rate in Hz
-samp_rate = 10e6  # 10 MHz
+fs = 10e6  # 10 MHz
+fLO = 2425e6      # 2425 MHz (local oscillator frequency)
 
 # Compute time axis in microseconds
-time = np.arange(len(inst_freq)) / samp_rate * 1e6  # Time in µs
+time = np.arange(len(inst_freq)) / fs * 1e6  # Time in µs
 
 # Create the mask
 threshold = np.max(magnitude) * 0.8
@@ -59,7 +60,7 @@ axes[0].grid()
 
 # Compute and plot the spectrogram
 f, t, Sxx = spectrogram(data, 
-                        fs=samp_rate, 
+                        fs=fs, 
                         window='hann', 
                         nperseg=256, 
                         noverlap=128, 
@@ -68,16 +69,17 @@ f, t, Sxx = spectrogram(data,
                         return_onesided=False)
 
 # Shift frequencies to include negative values
-f = np.fft.fftshift(f - samp_rate / 2)  # Adjust frequency bins for FFT shift
+f = np.fft.fftshift(f - fs / 2)  # Adjust frequency bins for FFT shift
+f += fLO + int(fs/2)                                # Add fLO to centre the frequency axis
 Sxx = np.fft.fftshift(Sxx, axes=0)     # Apply FFT shift to the spectrogram
 
 # Convert to dB scale for visualization
 Sxx_dB = 10 * np.log10(np.abs(Sxx))
 
-cmesh = axes[1].pcolormesh(t * 1e6, f, Sxx_dB, shading='gouraud', cmap='viridis')
+cmesh = axes[1].pcolormesh(t * 1e6, f / 1e6, Sxx_dB, shading='nearest', cmap='viridis')  # Convert Hz to MHz for display
 axes[1].set_title("Spectrogram of Complex Signal (Negative and Positive Frequencies)")
 axes[1].set_xlabel("Time (µs)")
-axes[1].set_ylabel("Frequency (Hz)")
+axes[1].set_ylabel("Frequency (MHz)")
 axes[1].grid()
 
 # Add the colour bar below the spectrogram
