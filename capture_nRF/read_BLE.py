@@ -35,7 +35,7 @@ start_times = time[np.where((mask[1:] == 1) & (mask[:-1] == 0))[0] + 1]  # Risin
 end_times = time[np.where((mask[1:] == 0) & (mask[:-1] == 1))[0] + 1]    # Falling edges
 
 # Plot the results
-fig, axes = plt.subplots(3, 1, figsize=(12, 10), gridspec_kw={'height_ratios': [2, 2, 0.1]})
+fig, axes = plt.subplots(3, 1, figsize=(14, 8), gridspec_kw={'height_ratios': [2, 2, 0.1]})
 
 # Plot instantaneous frequency
 axes[0].plot(time, inst_freq, label="Instantaneous Frequency")
