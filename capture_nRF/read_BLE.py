@@ -77,7 +77,7 @@ Sxx = np.fft.fftshift(Sxx, axes=0)     # Apply FFT shift to the spectrogram
 Sxx_dB = 10 * np.log10(np.abs(Sxx))
 
 cmesh = axes[1].pcolormesh(t * 1e6, f / 1e6, Sxx_dB, shading='nearest', cmap='viridis')  # Convert Hz to MHz for display
-axes[1].set_title("Spectrogram of Complex Signal (Negative and Positive Frequencies)")
+axes[1].set_title(f"Spectrogram around {int(fLO/1e6)}MHz")
 axes[1].set_xlabel("Time (µs)")
 axes[1].set_ylabel("Frequency (MHz)")
 axes[1].grid()
