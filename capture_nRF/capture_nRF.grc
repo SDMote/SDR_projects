@@ -69,7 +69,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [480, 296.0]
+    coordinate: [320, 328.0]
     rotation: 0
     state: enabled
 - name: blocks_file_sink_0
@@ -87,7 +87,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1312, 544.0]
+    coordinate: [1008, 304.0]
     rotation: 0
     state: enabled
 - name: blocks_head_0
@@ -105,7 +105,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [896, 544.0]
+    coordinate: [800, 320.0]
     rotation: 0
     state: enabled
 - name: iio_pluto_source_0
@@ -136,7 +136,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [216, 204.0]
+    coordinate: [40, 236.0]
     rotation: 0
     state: enabled
 - name: low_pass_filter_0
@@ -160,7 +160,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [712, 248.0]
+    coordinate: [552, 280.0]
     rotation: 0
     state: enabled
 
