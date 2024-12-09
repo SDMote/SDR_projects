@@ -61,8 +61,12 @@ axes[0].grid()
 # Plot instantaneous frequency and decoded bits
 axes[1].plot(time, inst_freq, label="Instantaneous Frequency")
 axes[1].plot(time, binary_inst_freq * 0.18, label="Decoded Bits")
+axes[1].set_ylabel("Frequency (rad/sample)")
+if 0 <= file_num <= 3:
+    axes[1].set_title("BLE Packet")
+else:
+    axes[1].set_title("IEEE 802.15.4 Packet")
 axes[1].set_xlim(time[0], time[-1])
-axes[1].set_title("BLE Packet")
 axes[1].set_xlabel("Time (µs)")
 axes[1].set_ylabel("Frequency (rad/sample)")
 axes[1].legend()
