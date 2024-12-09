@@ -42,20 +42,31 @@ inst_freq *= mask
 # Decode bits
 binary_inst_freq = decode_bits(inst_freq, 0.06)
 
-# Plot the results
-fig, axes = plt.subplots(3, 1, figsize=(14, 8), gridspec_kw={'height_ratios': [2, 2, 0.1]})
+# Plot the results with IQ plots
+fig, axes = plt.subplots(4, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [1.5, 2, 2, 0.1]})
 
-# Plot instantaneous frequency
-axes[0].plot(time, inst_freq, label="Instantaneous Frequency")
-axes[0].plot(time, binary_inst_freq * 0.18, label="Decoded Bits")
+# Compute time axis in microseconds for IQ plot
+time_iq = np.arange(len(data)) / fs * 1e6
 
-# Set limits to align edges with data
+# Plot I and Q components
+axes[0].plot(time_iq, np.real(data), label="I (In-phase)")
+axes[0].plot(time_iq, np.imag(data), label="Q (Quadrature)")
+axes[0].set_title("Time Domain Signal (I/Q Components)")
 axes[0].set_xlim(time[0], time[-1])
-axes[0].set_title("BLE Packet")
 axes[0].set_xlabel("Time (µs)")
-axes[0].set_ylabel("Frequency (rad/sample)")
+axes[0].set_ylabel("Amplitude")
 axes[0].legend()
 axes[0].grid()
+
+# Plot instantaneous frequency and decoded bits
+axes[1].plot(time, inst_freq, label="Instantaneous Frequency")
+axes[1].plot(time, binary_inst_freq * 0.18, label="Decoded Bits")
+axes[1].set_xlim(time[0], time[-1])
+axes[1].set_title("BLE Packet")
+axes[1].set_xlabel("Time (µs)")
+axes[1].set_ylabel("Frequency (rad/sample)")
+axes[1].legend()
+axes[1].grid()
 
 # Compute and plot the spectrogram
 f, t, Sxx = spectrogram(data, 
@@ -69,20 +80,20 @@ f, t, Sxx = spectrogram(data,
 
 # Shift frequencies to include negative values
 f = np.fft.fftshift(f - fs / 2)  # Adjust frequency bins for FFT shift
-f += fLO + int(fs/2)                                # Add fLO to centre the frequency axis
-Sxx = np.fft.fftshift(Sxx, axes=0)     # Apply FFT shift to the spectrogram
+f += fLO + int(fs/2)            # Add fLO to centre the frequency axis
+Sxx = np.fft.fftshift(Sxx, axes=0)  # Apply FFT shift to the spectrogram
 
 # Convert to dB scale for visualization
 Sxx_dB = 10 * np.log10(np.abs(Sxx))
 
-cmesh = axes[1].pcolormesh(t * 1e6, f / 1e6, Sxx_dB, shading='nearest', cmap='viridis')  # Convert Hz to MHz for display
-axes[1].set_title(f"Spectrogram around {int(fLO/1e6)}MHz")
-axes[1].set_xlabel("Time (µs)")
-axes[1].set_ylabel("Frequency (MHz)")
-axes[1].grid()
+cmesh = axes[2].pcolormesh(t * 1e6, f / 1e6, Sxx_dB, shading='nearest', cmap='viridis')  # Convert Hz to MHz for display
+axes[2].set_title(f"Spectrogram around {int(fLO/1e6)}MHz")
+axes[2].set_xlabel("Time (µs)")
+axes[2].set_ylabel("Frequency (MHz)")
+axes[2].grid()
 
 # Add the colour bar below the spectrogram
-cbar = fig.colorbar(cmesh, cax=axes[2], orientation='horizontal')
+cbar = fig.colorbar(cmesh, cax=axes[3], orientation='horizontal')
 cbar.set_label('Power/Frequency (dB/Hz)')
 
 plt.tight_layout()
