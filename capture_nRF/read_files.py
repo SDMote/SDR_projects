@@ -90,7 +90,16 @@ Sxx = np.fft.fftshift(Sxx, axes=0)  # Apply FFT shift to the spectrogram
 # Convert to dB scale for visualization
 Sxx_dB = 10 * np.log10(np.abs(Sxx))
 
-cmesh = axes[2].pcolormesh(t * 1e6, f / 1e6, Sxx_dB, shading='nearest', cmap='viridis')  # Convert Hz to MHz for display
+cmesh = axes[2].pcolormesh(
+    t * 1e6,
+    f / 1e6, # Convert Hz to MHz for display
+    Sxx_dB,
+    shading='nearest',
+    cmap='viridis',
+    vmin=-65, # Apply thresholds for better contrast
+    # vmax=vmax
+)
+
 axes[2].set_title(f"Spectrogram around {int(fLO/1e6)}MHz")
 axes[2].set_xlabel("Time (µs)")
 axes[2].set_ylabel("Frequency (MHz)")
