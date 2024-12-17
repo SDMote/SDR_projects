@@ -87,10 +87,10 @@ blocks:
     min_len: '200'
     orient: QtCore.Qt.Horizontal
     rangeType: float
-    start: -10e6
+    start: 97.4e6 - 10e6
     step: 1e4
-    stop: 10e6
-    value: 200e3
+    stop: 97.4e6 + 10e6
+    value: 97.4e6
     widget: counter_slider
   states:
     bus_sink: false
@@ -130,7 +130,7 @@ blocks:
     alias: ''
     amp: '1'
     comment: ''
-    freq: channel_slider
+    freq: centre_freq - channel_slider
     maxoutbuf: '0'
     minoutbuf: '0'
     offset: '0'
@@ -279,7 +279,7 @@ blocks:
     alias: ''
     bw: samp_rate
     comment: ''
-    fc: channel_freq
+    fc: channel_slider
     fftsize: '1024'
     gui_hint: ''
     maxoutbuf: '0'

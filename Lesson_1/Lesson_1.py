@@ -68,7 +68,7 @@ class Lesson_1(gr.top_block, Qt.QWidget):
         ##################################################
         self.samp_rate = samp_rate = 4e6
         self.channel_width = channel_width = 200e3
-        self.channel_slider = channel_slider = 200e3
+        self.channel_slider = channel_slider = 97.4e6
         self.channel_freq = channel_freq = 97.4e6
         self.centre_freq = centre_freq = 97.9e6
         self.audio_gain = audio_gain = 0.25
@@ -77,7 +77,7 @@ class Lesson_1(gr.top_block, Qt.QWidget):
         # Blocks
         ##################################################
 
-        self._channel_slider_range = qtgui.Range(-10e6, 10e6, 1e4, 200e3, 200)
+        self._channel_slider_range = qtgui.Range(97.4e6 - 10e6, 97.4e6 + 10e6, 1e4, 97.4e6, 200)
         self._channel_slider_win = qtgui.RangeWidget(self._channel_slider_range, self.set_channel_slider, "'channel_slider'", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_layout.addWidget(self._channel_slider_win)
         self._audio_gain_range = qtgui.Range(0, 0.5, 0.01, 0.25, 200)
@@ -91,7 +91,7 @@ class Lesson_1(gr.top_block, Qt.QWidget):
         self.qtgui_sink_x_0_0 = qtgui.sink_c(
             1024, #fftsize
             window.WIN_HAMMING, #wintype
-            channel_freq, #fc
+            channel_slider, #fc
             samp_rate, #bw
             "", #name
             True, #plotfreq
@@ -133,7 +133,7 @@ class Lesson_1(gr.top_block, Qt.QWidget):
         	audio_decimation=10,
         	deemph_tau=(75e-6),
         )
-        self.analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, channel_slider, 1, 0, 0)
+        self.analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, (centre_freq - channel_slider), 1, 0, 0)
 
 
         ##################################################
@@ -165,7 +165,7 @@ class Lesson_1(gr.top_block, Qt.QWidget):
         self.analog_sig_source_x_0.set_sampling_freq(self.samp_rate)
         self.iio_pluto_source_0.set_samplerate(int(self.samp_rate))
         self.low_pass_filter_0.set_taps(firdes.low_pass(1, self.samp_rate, 75e3, 25e3, window.WIN_HAMMING, 6.76))
-        self.qtgui_sink_x_0_0.set_frequency_range(self.channel_freq, self.samp_rate)
+        self.qtgui_sink_x_0_0.set_frequency_range(self.channel_slider, self.samp_rate)
 
     def get_channel_width(self):
         return self.channel_width
@@ -178,20 +178,21 @@ class Lesson_1(gr.top_block, Qt.QWidget):
 
     def set_channel_slider(self, channel_slider):
         self.channel_slider = channel_slider
-        self.analog_sig_source_x_0.set_frequency(self.channel_slider)
+        self.analog_sig_source_x_0.set_frequency((self.centre_freq - self.channel_slider))
+        self.qtgui_sink_x_0_0.set_frequency_range(self.channel_slider, self.samp_rate)
 
     def get_channel_freq(self):
         return self.channel_freq
 
     def set_channel_freq(self, channel_freq):
         self.channel_freq = channel_freq
-        self.qtgui_sink_x_0_0.set_frequency_range(self.channel_freq, self.samp_rate)
 
     def get_centre_freq(self):
         return self.centre_freq
 
     def set_centre_freq(self, centre_freq):
         self.centre_freq = centre_freq
+        self.analog_sig_source_x_0.set_frequency((self.centre_freq - self.channel_slider))
         self.iio_pluto_source_0.set_frequency(int(self.centre_freq))
 
     def get_audio_gain(self):
