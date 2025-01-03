@@ -79,7 +79,7 @@ axes[0].grid()
 axes[1].plot(time, inst_freq, label="Instantaneous Frequency")
 axes[1].plot(time, binary_inst_freq * 0.18, label="Decoded Bits")
 axes[1].set_ylabel("Frequency (rad/sample)")
-if 0 <= file_num <= 3:
+if 0 <= file_num <= 3 or file_num == 8:
     axes[1].set_title("BLE Packet")
 else:
     axes[1].set_title("IEEE 802.15.4 Packet")
@@ -126,4 +126,18 @@ cbar = fig.colorbar(cmesh, cax=axes[3], orientation='horizontal')
 cbar.set_label('Power/Frequency (dB/Hz)')
 
 plt.tight_layout()
+plt.show()
+
+
+# Plot IQ trajectory in the I-Q plane
+
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.plot(np.real(data), np.imag(data), label="IQ Trajectory", linewidth=1)
+ax.set_title("I-Q Plane (Signal Trajectory)")
+ax.set_xlabel("I (In-phase)")
+ax.set_ylabel("Q (Quadrature)")
+ax.axhline(0, color="black", linewidth=0.5, linestyle="--")  # Horizontal axis
+ax.axvline(0, color="black", linewidth=0.5, linestyle="--")  # Vertical axis
+ax.legend()
+ax.grid()
 plt.show()
