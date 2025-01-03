@@ -1,18 +1,32 @@
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import spectrogram
 
-files = ["BLE_802154_0dB_0dB", # 0
-         "BLE_802154_0dB_8dB", # 1
-         "BLE_tone_0dB_0dB", # 2
-         "BLE_tone_0dB_8dB", # 3
-         "802154_BLE_0dB_0dB", # 4
-         "802154_BLE_0dB_8dB", # 5
-         "802154_tone_0dB_0dB", # 6
-         "802154_tone_0dB_8dB", # 7
+# List of available files
+files = [
+    "BLE_802154_0dB_0dB",  # 0
+    "BLE_802154_0dB_8dB",  # 1
+    "BLE_tone_0dB_0dB",    # 2
+    "BLE_tone_0dB_8dB",    # 3
+    "802154_BLE_0dB_0dB",  # 4
+    "802154_BLE_0dB_8dB",  # 5
+    "802154_tone_0dB_0dB", # 6
+    "802154_tone_0dB_8dB", # 7
 ]
 
-file_num = 7
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="Process and plot FSK signal from file.")
+parser.add_argument(
+    "-f", "--file_num", type=int, required=True, 
+    help="File number to process (0-7)"
+)
+args = parser.parse_args()
+
+# Validate file_num
+file_num = args.file_num
+if file_num < 0 or file_num >= len(files):
+    raise ValueError(f"Invalid file number: {file_num}. Must be between 0 and {len(files)-1}.")
 
 # Create mask to omit noisy instantaneous frequency
 def decode_bits(data, threshold):
@@ -21,6 +35,7 @@ def decode_bits(data, threshold):
                                 np.where(inst_freq < -threshold, -1, 0))
     return hysteresis_inst_freq
 
+# Load data
 data = np.fromfile(f"data/{files[file_num]}.dat", dtype=np.complex64)
 inst_freq = np.diff(np.unwrap(np.angle(data)))
 magnitude = np.abs(data[:-1])
@@ -97,7 +112,6 @@ cmesh = axes[2].pcolormesh(
     shading='nearest',
     cmap='viridis',
     vmin=-65, # Apply thresholds for better contrast
-    # vmax=vmax
 )
 
 axes[2].set_title(f"Spectrogram around {int(fLO/1e6)}MHz")
