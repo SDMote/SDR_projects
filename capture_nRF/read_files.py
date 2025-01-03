@@ -13,6 +13,8 @@ files = [
     "802154_BLE_0dB_8dB",  # 5
     "802154_tone_0dB_0dB", # 6
     "802154_tone_0dB_8dB", # 7
+    "BLE", # 8
+    "802154", # 9
 ]
 
 # Parse command-line arguments
@@ -48,7 +50,7 @@ fLO = 2425e6      # 2425 MHz (local oscillator frequency)
 time = np.arange(len(inst_freq)) / fs * 1e6  # Time in µs
 
 # Create the mask
-threshold = np.max(magnitude) * 0.04
+threshold = np.max(magnitude) * 0.4
 mask = magnitude > threshold
 
 # Ignore noise
