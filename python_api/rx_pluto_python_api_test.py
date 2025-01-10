@@ -6,8 +6,9 @@ center_freq = 100e6 # Hz
 num_samps = 10000 # number of samples returned per call to rx()
 
 sdr = adi.Pluto('ip:192.168.2.1')
-sdr.gain_control_mode_chan0 = 'manual'
-sdr.rx_hardwaregain_chan0 = 70.0 # dB
+# sdr.gain_control_mode_chan0 = 'manual'
+# sdr.rx_hardwaregain_chan0 = 70.0 # allowable range is 0 to 74.5 dB
+sdr.gain_control_mode_chan0 = "fast_attack"
 sdr.rx_lo = int(center_freq)
 sdr.sample_rate = int(sample_rate)
 sdr.rx_rf_bandwidth = int(sample_rate) # filter width, just set it to the same as sample rate for now
