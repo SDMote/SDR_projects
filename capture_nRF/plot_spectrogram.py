@@ -92,14 +92,14 @@ def plot_spectrograms_1x4(
 
 
 files = [
-    "BLE_802154_0dB_0dB",  # 0
-    "BLE_802154_0dB_8dB",  # 1
     "BLE_tone_0dB_0dB",    # 2
     "BLE_tone_0dB_8dB",    # 3
-    "802154_BLE_0dB_0dB",  # 4
-    "802154_BLE_0dB_8dB",  # 5
     "802154_tone_0dB_0dB", # 6
     "802154_tone_0dB_8dB", # 7
+    "BLE_802154_0dB_0dB",  # 0
+    "BLE_802154_0dB_8dB",  # 1
+    "802154_BLE_0dB_0dB",  # 4
+    "802154_BLE_0dB_8dB",  # 5
 ]
 
 fs = 10e6  # Sampling frequency (10 MHz)
