@@ -39,7 +39,7 @@ for i in range (0, 10):
     raw_data = sdr.rx()
 
 # Receive samples
-rx_samples = sdr.rx()
+rx_samples = sdr.rx() # len(rx_samples) = num_samps
 print(rx_samples)
 
 # Stop transmitting
@@ -50,15 +50,42 @@ psd = np.abs(np.fft.fftshift(np.fft.fft(rx_samples)))**2
 psd_dB = 10*np.log10(psd)
 f = np.linspace(sample_rate/-2, sample_rate/2, len(psd))
 
-# Plot time domain
-plt.figure(0)
-plt.plot(np.real(rx_samples[::100]))
-plt.plot(np.imag(rx_samples[::100]))
-plt.xlabel("Time")
 
-# Plot freq domain
-plt.figure(1)
-plt.plot(f/1e6, psd_dB)
-plt.xlabel("Frequency [MHz]")
-plt.ylabel("PSD")
+
+# Create subplots for cleaner organization
+fig, axes = plt.subplots(4, 1, figsize=(10, 16), constrained_layout=True)
+
+# Time Domain Plot
+axes[0].plot(np.real(rx_samples[::1]), label="Real")
+axes[0].plot(np.imag(rx_samples[::1]), label="Imaginary")
+axes[0].set_title("Time Domain Signal")
+axes[0].set_xlabel("Samples")
+axes[0].legend()
+axes[0].grid()
+
+# Instantaneous Phase Plot
+axes[1].plot(np.angle(rx_samples), label="Instantaneous Phase", color="orange")
+axes[1].set_title("Instantaneous Phase")
+axes[1].set_xlabel("Samples")
+axes[1].set_ylabel("Phase [radians]")
+axes[1].grid()
+
+# Frequency Domain Plot
+axes[2].plot(f / 1e3, psd_dB)
+axes[2].set_title("Frequency Domain (PSD)")
+axes[2].set_xlabel("Frequency [kHz]")
+axes[2].set_ylabel("PSD [dB]")
+axes[2].grid()
+
+# I-Q Trajectory Plot
+axes[3].plot(np.real(rx_samples), np.imag(rx_samples), label="IQ Trajectory", linewidth=1)
+axes[3].set_title("I-Q Plane (Signal Trajectory)")
+axes[3].set_xlabel("I (In-phase)")
+axes[3].set_ylabel("Q (Quadrature)")
+axes[3].axhline(0, color="black", linewidth=0.5, linestyle="--")  # Horizontal axis
+axes[3].axvline(0, color="black", linewidth=0.5, linestyle="--")  # Vertical axis
+axes[3].legend()
+axes[3].grid()
+
+# Show all plots
 plt.show()
