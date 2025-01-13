@@ -1,6 +1,7 @@
 import numpy as np
 import adi
 import matplotlib.pyplot as plt
+from scipy.signal import spectrogram
 
 sample_rate = 1e6 # Hz
 center_freq = 915e6 # Hz
@@ -40,7 +41,7 @@ for i in range (0, 10):
 
 # Receive samples
 rx_samples = sdr.rx() # len(rx_samples) = num_samps
-print(rx_samples)
+print(len(rx_samples))
 
 # Stop transmitting
 sdr.tx_destroy_buffer()
@@ -53,7 +54,7 @@ f = np.linspace(sample_rate/-2, sample_rate/2, len(psd))
 
 
 # Create subplots for cleaner organization
-fig, axes = plt.subplots(4, 1, figsize=(10, 16), constrained_layout=True)
+fig, axes = plt.subplots(5, 1, figsize=(10, 16), constrained_layout=True)
 
 # Time Domain Plot
 axes[0].plot(np.real(rx_samples[::1]), label="Real")
@@ -86,6 +87,44 @@ axes[3].axhline(0, color="black", linewidth=0.5, linestyle="--")  # Horizontal a
 axes[3].axvline(0, color="black", linewidth=0.5, linestyle="--")  # Vertical axis
 axes[3].legend()
 axes[3].grid()
+
+
+
+# Compute and plot the spectrogram
+f, t, Sxx = spectrogram(rx_samples, 
+                        fs=sample_rate, 
+                        window='hann', 
+                        nperseg=256, 
+                        noverlap=128, 
+                        scaling='density', 
+                        mode='complex',
+                        return_onesided=False)
+
+# Shift frequencies to include negative values
+f = np.fft.fftshift(f - sample_rate / 2)  # Adjust frequency bins for FFT shift
+f += center_freq + int(sample_rate/2)            # Add fLO to centre the frequency axis
+Sxx = np.fft.fftshift(Sxx, axes=0)  # Apply FFT shift to the spectrogram
+
+# Convert to dB scale for visualization
+Sxx_dB = 10 * np.log10(np.abs(Sxx))
+
+cmesh = axes[4].pcolormesh(
+    t * 1e6,
+    f / 1e6, # Convert Hz to MHz for display
+    Sxx_dB,
+    shading='nearest',
+    cmap='viridis',
+    vmin=-65, # Apply thresholds for better contrast
+)
+
+axes[4].set_title(f"Spectrogram around {int(center_freq/1e6)}MHz")
+axes[4].set_xlabel("Time (µs)")
+axes[4].set_ylabel("Frequency (MHz)")
+axes[4].grid()
+
+plt.tight_layout()
+plt.show()
+
 
 # Show all plots
 plt.show()
