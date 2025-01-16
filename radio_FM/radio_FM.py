@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: GPL-3.0
 #
 # GNU Radio Python Flow Graph
-# Title: Lesson_1
+# Title: radio_FM
 # GNU Radio version: v3.11.0.0git-843-g6b25c171
 
 from PyQt5 import Qt
@@ -30,12 +30,12 @@ import threading
 
 
 
-class Lesson_1(gr.top_block, Qt.QWidget):
+class radio_FM(gr.top_block, Qt.QWidget):
 
     def __init__(self):
-        gr.top_block.__init__(self, "Lesson_1", catch_exceptions=True)
+        gr.top_block.__init__(self, "radio_FM", catch_exceptions=True)
         Qt.QWidget.__init__(self)
-        self.setWindowTitle("Lesson_1")
+        self.setWindowTitle("radio_FM")
         qtgui.util.check_set_qss()
         try:
             self.setWindowIcon(Qt.QIcon.fromTheme('gnuradio-grc'))
@@ -53,7 +53,7 @@ class Lesson_1(gr.top_block, Qt.QWidget):
         self.top_grid_layout = Qt.QGridLayout()
         self.top_layout.addLayout(self.top_grid_layout)
 
-        self.settings = Qt.QSettings("gnuradio/flowgraphs", "Lesson_1")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "radio_FM")
 
         try:
             geometry = self.settings.value("geometry")
@@ -150,7 +150,7 @@ class Lesson_1(gr.top_block, Qt.QWidget):
 
 
     def closeEvent(self, event):
-        self.settings = Qt.QSettings("gnuradio/flowgraphs", "Lesson_1")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "radio_FM")
         self.settings.setValue("geometry", self.saveGeometry())
         self.stop()
         self.wait()
@@ -205,7 +205,7 @@ class Lesson_1(gr.top_block, Qt.QWidget):
 
 
 
-def main(top_block_cls=Lesson_1, options=None):
+def main(top_block_cls=radio_FM, options=None):
 
     qapp = Qt.QApplication(sys.argv)
 
