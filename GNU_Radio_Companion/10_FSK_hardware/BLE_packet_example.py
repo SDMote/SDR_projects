@@ -26,6 +26,7 @@ from PyQt5 import Qt
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
+import BLE_packet_example_epy_block_0 as epy_block_0  # embedded python block
 import sip
 import threading
 
@@ -198,6 +199,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
                 (samp_rate/100),
                 window.WIN_HAMMING,
                 6.76))
+        self.epy_block_0 = epy_block_0.tag_payload_start()
         self.digital_symbol_sync_xx_0 = digital.symbol_sync_ff(
             digital.TED_EARLY_LATE,
             samples_per_bit,
@@ -210,7 +212,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
             digital.IR_MMSE_8TAP,
             128,
             [])
-        self.digital_correlate_access_code_tag_xx_0 = digital.correlate_access_code_tag_bb('01010101000111100110101000101100010010000000000000000000', 0, 'preamble start')
+        self.digital_correlate_access_code_tag_xx_0 = digital.correlate_access_code_tag_bb('01010101000111100110101000101100010010000000000000000000', 0, 'length start')
         self.digital_binary_slicer_fb_0 = digital.binary_slicer_fb()
         self.blocks_uchar_to_float_0_0_0 = blocks.uchar_to_float()
         self.blocks_uchar_to_float_0 = blocks.uchar_to_float()
@@ -232,9 +234,10 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.connect((self.blocks_uchar_to_float_0_0_0, 0), (self.qtgui_time_sink_x_1_1, 0))
         self.connect((self.digital_binary_slicer_fb_0, 0), (self.blocks_uchar_to_float_0, 0))
         self.connect((self.digital_binary_slicer_fb_0, 0), (self.digital_correlate_access_code_tag_xx_0, 0))
-        self.connect((self.digital_correlate_access_code_tag_xx_0, 0), (self.blocks_uchar_to_float_0_0_0, 0))
+        self.connect((self.digital_correlate_access_code_tag_xx_0, 0), (self.epy_block_0, 0))
         self.connect((self.digital_symbol_sync_xx_0, 0), (self.digital_binary_slicer_fb_0, 0))
         self.connect((self.digital_symbol_sync_xx_0, 0), (self.qtgui_time_sink_x_1, 0))
+        self.connect((self.epy_block_0, 0), (self.blocks_uchar_to_float_0_0_0, 0))
         self.connect((self.low_pass_filter_0_0, 0), (self.analog_quadrature_demod_cf_0, 0))
 
 
