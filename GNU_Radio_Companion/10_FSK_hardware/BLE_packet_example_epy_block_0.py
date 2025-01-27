@@ -18,6 +18,9 @@ class tag_payload_start(gr.sync_block):
             in_sig=[np.uint8],  # Input is binary stream
             out_sig=[np.uint8],  # Pass-through output stream
         )
+        self.tag_key = gr.pmt.intern("length start")  # Tag to search for
+        self.buffer = []  # Buffer to hold data across chunks
+        self.buffer_offset = None  # Store tag offset if tag spans chunks
 
     def work(self, input_items, output_items):
         in_data = input_items[0]  # Input stream
@@ -29,7 +32,7 @@ class tag_payload_start(gr.sync_block):
         out_data[:] = in_data
 
         for tag in tags:
-            if tag.key == gr.pmt.intern("length start"):  # Look for "length start" tag
+            if tag.key == self.tag_key:  # Look for "length start" tag
                 tag_pos_window = tag.offset - nread  # Position of the tag in the current window
                 
                 # Ensure there is data to extract the length byte
