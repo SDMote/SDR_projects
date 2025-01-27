@@ -180,7 +180,7 @@ blocks:
     maximum: '0.1'
     maxoutbuf: '0'
     minoutbuf: '0'
-    samples_per_second: samp_rate/10
+    samples_per_second: samp_rate/100
     type: complex
     vlen: '1'
   states:
@@ -289,40 +289,62 @@ blocks:
       \ of your block. The arguments to __init__  will\nbe the parameters. All of\
       \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
       from gnuradio import gr\n\n\nclass tag_payload_start(gr.sync_block):\n    def\
-      \ __init__(self):\n        gr.sync_block.__init__(\n            self,\n    \
-      \        name=\"Tag Payload Start\",\n            in_sig=[np.uint8],  # Input\
-      \ is binary stream\n            out_sig=[np.uint8],  # Pass-through output stream\n\
-      \        )\n        self.tag_key = gr.pmt.intern(\"length start\")  # Tag to\
-      \ search for\n        self.buffer = []  # Buffer to hold data across chunks\n\
-      \        self.buffer_offset = None  # Store tag offset if tag spans chunks\n\
-      \n    def work(self, input_items, output_items):\n        in_data = input_items[0]\
-      \  # Input stream\n        out_data = output_items[0]  # Output stream\n   \
-      \     nread = self.nitems_read(0)  # Number of items read so far on input\n\
-      \        tags = self.get_tags_in_window(0, 0, len(in_data))  # Tags in current\
-      \ window\n\n        # Copy input to output (pass-through block)\n        out_data[:]\
-      \ = in_data\n\n        for tag in tags:\n            if tag.key == self.tag_key:\
-      \  # Look for \"length start\" tag\n                tag_pos_window = tag.offset\
-      \ - nread  # Position of the tag in the current window\n                \n \
-      \               # Ensure there is data to extract the length byte\n        \
-      \        if tag_pos_window + 8 <= len(in_data):\n                    # Extract\
-      \ 8 bits following the tag               \n                    payload_length_bits\
-      \ = in_data[tag_pos_window:tag_pos_window + 8] \n\n                    # Convert\
-      \ LSB to MSB 8 bits to integer\n                    payload_length = 0\n   \
-      \                 for i, bit in enumerate(payload_length_bits):\n          \
-      \              payload_length |= (bit << i)\n\n                    # Add a new\
-      \ tag for the start of the payload\n                    self.add_item_tag(\n\
-      \                        0,  # Output port\n                        tag.offset\
-      \ + 8,  # Absolute position of the payload start\n                        gr.pmt.intern(f\"\
-      payload start\"),\n                        gr.pmt.from_long(payload_length),\
-      \  # Length of the payload\n                    )\n\n        return len(in_data)\n"
+      \ __init__(self, num_bits=8):\n        gr.sync_block.__init__(\n           \
+      \ self,\n            name=\"Tag Payload Start\",\n            in_sig=[np.uint8],\
+      \  # Input is binary stream\n            out_sig=[np.uint8],  # Pass-through\
+      \ output stream\n        )\n        self.tag_key = gr.pmt.intern(\"length start\"\
+      )  # Tag to search for\n        self.num_bits = num_bits  # Number of bits to\
+      \ read (parameterised)\n        self.buffer = []  # Buffer to hold data across\
+      \ chunks\n        self.buffering_active = False  # Flag to indicate active buffering\n\
+      \        self.pending_tag = None  # Store the tag for processing when buffer\
+      \ is filled\n\n    def work(self, input_items, output_items):\n        in_data\
+      \ = input_items[0]  # Input stream\n        out_data = output_items[0]  # Output\
+      \ stream\n        nread = self.nitems_read(0)  # Number of items read so far\
+      \ on input\n        tags = self.get_tags_in_window(0, 0, len(in_data))  # Tags\
+      \ in current window\n\n        # Copy input to output (pass-through block)\n\
+      \        out_data[:] = in_data\n\n        # Handle active buffering if needed\n\
+      \        if self.buffering_active:\n            self.buffer.extend(in_data)\n\
+      \            if len(self.buffer) >= self.num_bits:  # Check if we have enough\
+      \ bits\n                self.process_buffered_data()\n                \n   \
+      \     else:      \n            # If not buffering, look for a triggering tag\
+      \ that starts buffering or direct processing if possible within the window\n\
+      \            for tag in tags:\n                if tag.key == self.tag_key: \
+      \ # Look for triggering tag\n                    tag_pos_window = tag.offset\
+      \ - nread  # Position of the tag in the current window\n                   \
+      \ \n                    # Check if the required number of bits is within the\
+      \ current chunk\n                    if tag_pos_window + self.num_bits <= len(in_data):\n\
+      \                        # Extract the bits directly from the current chunk\n\
+      \                        payload_bits = in_data[tag_pos_window:tag_pos_window\
+      \ + self.num_bits]\n                        self.process_payload(tag, payload_bits)\n\
+      \                    else:\n                        # Start buffering if data\
+      \ spans multiple chunks\n                        self.buffering_active = True\n\
+      \                        self.pending_tag = tag  # Store the tag for later use\n\
+      \                        self.buffer = list(in_data[tag_pos_window:])  # Add\
+      \ available bits to buffer\n\n                    break  # Only analyse first\
+      \ triggering tag (in case there is more than one)\n\n        return len(output_items[0])\n\
+      \n    def process_payload(self, tag, payload_bits):\n        # Convert bits\
+      \ to decimal\n        payload_length = self.binary_to_decimal(payload_bits)\n\
+      \n        # Add a new tag for the start of the payload\n        self.add_item_tag(\n\
+      \            0,  # Output port\n            tag.offset + self.num_bits,  # Absolute\
+      \ position of the payload start\n            gr.pmt.intern(\"payload start\"\
+      ),\n            gr.pmt.from_long(payload_length),  # Length of the payload\n\
+      \        )\n\n    def process_buffered_data(self):\n        # Process the buffered\
+      \ data once it has enough bits\n        payload_bits = self.buffer[:self.num_bits]\n\
+      \        self.process_payload(self.pending_tag, payload_bits)\n\n        # Empty\
+      \ the buffer and reset state\n        self.buffer = []\n        self.buffering_active\
+      \ = False\n        self.pending_tag = None\n\n    def binary_to_decimal(self,\
+      \ binary):\n        # Convert LSB to MSB bits to integer\n        decimal =\
+      \ 0\n        for i, bit in enumerate(binary):\n            decimal |= (bit <<\
+      \ i)\n\n        return decimal\n"
     affinity: ''
     alias: ''
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
+    num_bits: '8'
   states:
-    _io_cache: ('Tag Payload Start', 'tag_payload_start', [], [('0', 'byte', 1)],
-      [('0', 'byte', 1)], '', [])
+    _io_cache: ('Tag Payload Start', 'tag_payload_start', [('num_bits', '8')], [('0',
+      'byte', 1)], [('0', 'byte', 1)], '', ['num_bits'])
     bus_sink: false
     bus_source: false
     bus_structure: null
