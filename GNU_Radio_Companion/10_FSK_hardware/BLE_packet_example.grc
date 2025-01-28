@@ -400,12 +400,17 @@ blocks:
       \                        self.buffer = list(in_data[tag_pos_window:])  # Add\
       \ available bits to buffer\n\n                    break  # Only analyse first\
       \ triggering tag (in case there is more than one)\n\n        return len(output_items[0])\n\
-      \n    def process_payload(self, tag, payload_bits):\n        # Convert bits\
-      \ to decimal\n        payload_and_CRC = self.binary_to_uint8_list(payload_bits)\n\
-      \        print(\" \".join(f\"{byte:02X}\" for byte in payload_and_CRC))\n\n\
-      \        # Add a new tag for the start of the payload\n        self.add_item_tag(\n\
-      \            0,  # Output port\n            tag.offset + self.num_bits - 8 *\
-      \ self.CRC_size,  # Absolute position of the CRC start\n            self.output_tag_key,\n\
+      \    \n\n    def print_log(self, tag, payload_and_CRC):\n        print(f\"Packet\
+      \ start sample: {tag.offset}, \")\n        print(f\"length: {self.num_bytes\
+      \ - self.CRC_size}, \")\n        print(\"CRC: \" + \" \".join(f\"{byte:02X}\"\
+      \ for byte in payload_and_CRC[-self.CRC_size:]))\n        print(\" \".join(f\"\
+      {byte:02X}\" for byte in payload_and_CRC[:self.num_bytes - self.CRC_size]))\n\
+      \        print(\"\")\n\n    def process_payload(self, tag, payload_bits):\n\
+      \        # Convert bits to decimal\n        payload_and_CRC = self.binary_to_uint8_list(payload_bits)\n\
+      \        self.print_log(tag, payload_and_CRC)\n        \n        # Add a new\
+      \ tag for the start of the payload\n        self.add_item_tag(\n           \
+      \ 0,  # Output port\n            tag.offset + self.num_bits - 8 * self.CRC_size,\
+      \  # Absolute position of the CRC start\n            self.output_tag_key,\n\
       \            gr.pmt.from_long(self.num_bytes),  # Length of the payload\n  \
       \      )\n\n    def process_buffered_data(self):\n        # Process the buffered\
       \ data once it has enough bits\n        payload_bits = self.buffer[:self.num_bits]\n\

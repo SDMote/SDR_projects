@@ -66,12 +66,20 @@ class ReadPayload(gr.sync_block):
                     break  # Only analyse first triggering tag (in case there is more than one)
 
         return len(output_items[0])
+    
+
+    def print_log(self, tag, payload_and_CRC):
+        print(f"Packet start sample: {tag.offset}, ")
+        print(f"length: {self.num_bytes - self.CRC_size}, ")
+        print("CRC: " + " ".join(f"{byte:02X}" for byte in payload_and_CRC[-self.CRC_size:]))
+        print(" ".join(f"{byte:02X}" for byte in payload_and_CRC[:self.num_bytes - self.CRC_size]))
+        print("")
 
     def process_payload(self, tag, payload_bits):
         # Convert bits to decimal
         payload_and_CRC = self.binary_to_uint8_list(payload_bits)
-        print(" ".join(f"{byte:02X}" for byte in payload_and_CRC))
-
+        self.print_log(tag, payload_and_CRC)
+        
         # Add a new tag for the start of the payload
         self.add_item_tag(
             0,  # Output port
