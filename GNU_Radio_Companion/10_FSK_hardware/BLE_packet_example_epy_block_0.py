@@ -11,14 +11,15 @@ from gnuradio import gr
 
 
 class ReadPayloadLength(gr.sync_block):
-    def __init__(self, num_bits=8, trigger_tag="length start"):
+    def __init__(self, num_bits=8, input_tag="length start", output_tag="payload start"):
         gr.sync_block.__init__(
             self,
             name="Read Payload Length",
             in_sig=[np.uint8],  # Input is binary stream
             out_sig=[np.uint8],  # Pass-through output stream
         )
-        self.tag_key = gr.pmt.intern(trigger_tag)  # Tag to search for
+        self.input_tag_key = gr.pmt.intern(input_tag)  # Tag to search for
+        self.output_tag_key = gr.pmt.intern(output_tag)  # Tag to apply on data stream
         self.num_bits = num_bits  # Number of bits to read (parameterised)
         self.buffer = []  # Buffer to hold data across chunks
         self.buffering_active = False  # Flag to indicate active buffering
@@ -42,7 +43,7 @@ class ReadPayloadLength(gr.sync_block):
         else:      
             # If not buffering, look for a triggering tag that starts buffering or direct processing if possible within the window
             for tag in tags:
-                if tag.key == self.tag_key:  # Look for triggering tag
+                if tag.key == self.input_tag_key:  # Look for triggering tag
                     tag_pos_window = tag.offset - nread  # Position of the tag in the current window
                     
                     # Check if the required number of bits is within the current chunk
@@ -68,7 +69,7 @@ class ReadPayloadLength(gr.sync_block):
         self.add_item_tag(
             0,  # Output port
             tag.offset + self.num_bits,  # Absolute position of the payload start
-            gr.pmt.intern("payload start"),
+            self.output_tag_key,
             gr.pmt.from_long(payload_length),  # Length of the payload
         )
 
