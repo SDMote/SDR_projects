@@ -10,15 +10,15 @@ import numpy as np
 from gnuradio import gr
 
 
-class tag_payload_start(gr.sync_block):
-    def __init__(self, num_bits=8):
+class ReadPayloadLength(gr.sync_block):
+    def __init__(self, num_bits=8, trigger_tag="length start"):
         gr.sync_block.__init__(
             self,
-            name="Tag Payload Start",
+            name="Read Payload Length",
             in_sig=[np.uint8],  # Input is binary stream
             out_sig=[np.uint8],  # Pass-through output stream
         )
-        self.tag_key = gr.pmt.intern("length start")  # Tag to search for
+        self.tag_key = gr.pmt.intern(trigger_tag)  # Tag to search for
         self.num_bits = num_bits  # Number of bits to read (parameterised)
         self.buffer = []  # Buffer to hold data across chunks
         self.buffering_active = False  # Flag to indicate active buffering

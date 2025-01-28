@@ -199,7 +199,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
                 (samp_rate/100),
                 window.WIN_HAMMING,
                 6.76))
-        self.epy_block_0 = epy_block_0.tag_payload_start(num_bits=8)
+        self.epy_block_0 = epy_block_0.ReadPayloadLength(num_bits=8, trigger_tag="length start")
         self.digital_symbol_sync_xx_0 = digital.symbol_sync_ff(
             digital.TED_EARLY_LATE,
             samples_per_bit,

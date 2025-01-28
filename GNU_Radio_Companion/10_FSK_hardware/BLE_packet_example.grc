@@ -217,7 +217,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [752, 656.0]
+    coordinate: [984, 640.0]
     rotation: 0
     state: true
 - name: digital_binary_slicer_fb_0
@@ -288,12 +288,12 @@ blocks:
       \ GRC will instantiate the first class it finds\nto get ports and parameters\
       \ of your block. The arguments to __init__  will\nbe the parameters. All of\
       \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
-      from gnuradio import gr\n\n\nclass tag_payload_start(gr.sync_block):\n    def\
-      \ __init__(self, num_bits=8):\n        gr.sync_block.__init__(\n           \
-      \ self,\n            name=\"Tag Payload Start\",\n            in_sig=[np.uint8],\
+      from gnuradio import gr\n\n\nclass ReadPayloadLength(gr.sync_block):\n    def\
+      \ __init__(self, num_bits=8, trigger_tag=\"length start\"):\n        gr.sync_block.__init__(\n\
+      \            self,\n            name=\"Read Payload Length\",\n            in_sig=[np.uint8],\
       \  # Input is binary stream\n            out_sig=[np.uint8],  # Pass-through\
-      \ output stream\n        )\n        self.tag_key = gr.pmt.intern(\"length start\"\
-      )  # Tag to search for\n        self.num_bits = num_bits  # Number of bits to\
+      \ output stream\n        )\n        self.tag_key = gr.pmt.intern(trigger_tag)\
+      \  # Tag to search for\n        self.num_bits = num_bits  # Number of bits to\
       \ read (parameterised)\n        self.buffer = []  # Buffer to hold data across\
       \ chunks\n        self.buffering_active = False  # Flag to indicate active buffering\n\
       \        self.pending_tag = None  # Store the tag for processing when buffer\
@@ -342,9 +342,10 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     num_bits: '8'
+    trigger_tag: '"length start"'
   states:
-    _io_cache: ('Tag Payload Start', 'tag_payload_start', [('num_bits', '8')], [('0',
-      'byte', 1)], [('0', 'byte', 1)], '', ['num_bits'])
+    _io_cache: ('Read Payload Length', 'ReadPayloadLength', [('num_bits', '8'), ('trigger_tag',
+      "'length start'")], [('0', 'byte', 1)], [('0', 'byte', 1)], '', ['num_bits'])
     bus_sink: false
     bus_source: false
     bus_structure: null
@@ -665,7 +666,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [984, 624.0]
+    coordinate: [1160, 608.0]
     rotation: 0
     state: enabled
 - name: qtgui_waterfall_sink_x_0
