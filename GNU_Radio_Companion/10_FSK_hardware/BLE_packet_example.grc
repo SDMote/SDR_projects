@@ -180,7 +180,7 @@ blocks:
     maximum: '0.1'
     maxoutbuf: '0'
     minoutbuf: '0'
-    samples_per_second: samp_rate/100
+    samples_per_second: samp_rate/1000
     type: complex
     vlen: '1'
   states:
@@ -217,7 +217,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [984, 640.0]
+    coordinate: [1104, 640.0]
     rotation: 0
     state: true
 - name: digital_binary_slicer_fb_0
@@ -304,19 +304,18 @@ blocks:
       \ stream\n        nread = self.nitems_read(0)  # Number of items read so far\
       \ on input\n        tags = self.get_tags_in_window(0, 0, len(in_data))  # Tags\
       \ in current window\n\n        # Copy input to output (pass-through block)\n\
-      \        out_data[:] = in_data\n\n        # Handle active buffering if needed\n\
-      \        if self.buffering_active:\n            self.buffer.extend(in_data)\n\
-      \            if len(self.buffer) >= self.num_bits:  # Check if we have enough\
-      \ bits\n                self.process_buffered_data()\n                \n   \
-      \     else:      \n            # If not buffering, look for a triggering tag\
-      \ that starts buffering or direct processing if possible within the window\n\
-      \            for tag in tags:\n                if tag.key == self.input_tag_key:\
-      \  # Look for triggering tag\n                    tag_pos_window = tag.offset\
-      \ - nread  # Position of the tag in the current window\n                   \
-      \ \n                    # Check if the required number of bits is within the\
-      \ current chunk\n                    if tag_pos_window + self.num_bits <= len(in_data):\n\
-      \                        # Extract the bits directly from the current chunk\n\
-      \                        payload_bits = in_data[tag_pos_window:tag_pos_window\
+      \        out_data[:] = in_data\n\n        # Handle buffering\n        if self.buffering_active:\n\
+      \            self.buffer.extend(in_data)\n            if len(self.buffer) >=\
+      \ self.num_bits:  # Check if we have enough bits\n                self.process_buffered_data()\n\
+      \                \n        else:      \n            # If not buffering, look\
+      \ for a triggering tag that starts buffering or direct processing if possible\
+      \ within the window\n            for tag in tags:\n                if tag.key\
+      \ == self.input_tag_key:  # Look for triggering tag\n                    tag_pos_window\
+      \ = tag.offset - nread  # Position of the tag in the current window\n      \
+      \              \n                    # Check if the required number of bits\
+      \ is within the current chunk\n                    if tag_pos_window + self.num_bits\
+      \ <= len(in_data):\n                        # Extract the bits directly from\
+      \ the current chunk\n                        payload_bits = in_data[tag_pos_window:tag_pos_window\
       \ + self.num_bits]\n                        self.process_payload(tag, payload_bits)\n\
       \                    else:\n                        # Start buffering if data\
       \ spans multiple chunks\n                        self.buffering_active = True\n\
@@ -353,7 +352,89 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [520, 616.0]
+    coordinate: [528, 616.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_1
+  id: epy_block
+  parameters:
+    CRC_size: '3'
+    _source_code: "\"\"\"\nEmbedded Python Blocks:\n\nEach time this file is saved,\
+      \ GRC will instantiate the first class it finds\nto get ports and parameters\
+      \ of your block. The arguments to __init__  will\nbe the parameters. All of\
+      \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
+      from gnuradio import gr\n\n\nclass ReadPayload(gr.sync_block):\n    def __init__(self,\
+      \ input_tag=\"payload start\", output_tag=\"CRC start\", CRC_size=3):\n    \
+      \    gr.sync_block.__init__(\n            self,\n            name=\"Read Payload\"\
+      ,\n            in_sig=[np.uint8],  # Input is binary stream\n            out_sig=[np.uint8],\
+      \  # Pass-through output stream\n        )\n        self.input_tag_key = gr.pmt.intern(input_tag)\
+      \  # Tag to search for\n        self.output_tag_key = gr.pmt.intern(output_tag)\
+      \  # Tag to apply on data stream\n        self.CRC_size = CRC_size  # CRC size\
+      \ in bytes\n\n\n        self.num_bits = 0  # Number of bits to read\n      \
+      \  self.buffer = []  # Buffer to hold data across chunks\n        self.buffering_active\
+      \ = False  # Flag to indicate active buffering\n        self.pending_tag = None\
+      \  # Store the tag for processing when buffer is filled\n\n    def work(self,\
+      \ input_items, output_items):\n        in_data = input_items[0]  # Input stream\n\
+      \        out_data = output_items[0]  # Output stream\n        nread = self.nitems_read(0)\
+      \  # Number of items read so far on input\n        tags = self.get_tags_in_window(0,\
+      \ 0, len(in_data))  # Tags in current window\n\n        # Copy input to output\
+      \ (pass-through block)\n        out_data[:] = in_data\n\n        # Handle buffering\n\
+      \        if self.buffering_active:\n            self.buffer.extend(in_data)\n\
+      \            if len(self.buffer) >= self.num_bits:  # Check if we have enough\
+      \ bits\n                self.process_buffered_data()\n                \n   \
+      \     else:      \n            # If not buffering, look for a triggering tag\
+      \ that starts buffering or direct processing if possible within the window\n\
+      \            for tag in tags:\n                if tag.key == self.input_tag_key:\
+      \  # Look for triggering tag\n                    tag_pos_window = tag.offset\
+      \ - nread  # Position of the tag in the current window\n\n                 \
+      \   self.num_bytes = (gr.pmt.to_long(tag.value) + self.CRC_size) # Number of\
+      \ bytes to read\n                    self.num_bits = 8 * self.num_bytes # Number\
+      \ of bits to read\n\n                    # Check if the required number of bits\
+      \ is within the current chunk\n                    if tag_pos_window + self.num_bits\
+      \ <= len(in_data):\n                        # Extract the bits directly from\
+      \ the current chunk\n                        payload_bits = in_data[tag_pos_window:tag_pos_window\
+      \ + self.num_bits]\n                        self.process_payload(tag, payload_bits)\n\
+      \                    else:\n                        # Start buffering if data\
+      \ spans multiple chunks\n                        self.buffering_active = True\n\
+      \                        self.pending_tag = tag  # Store the tag for later use\n\
+      \                        self.buffer = list(in_data[tag_pos_window:])  # Add\
+      \ available bits to buffer\n\n                    break  # Only analyse first\
+      \ triggering tag (in case there is more than one)\n\n        return len(output_items[0])\n\
+      \n    def process_payload(self, tag, payload_bits):\n        # Convert bits\
+      \ to decimal\n        payload_and_CRC = self.binary_to_uint8_list(payload_bits)\n\
+      \        print(\" \".join(f\"{byte:02X}\" for byte in payload_and_CRC))\n\n\
+      \        # Add a new tag for the start of the payload\n        self.add_item_tag(\n\
+      \            0,  # Output port\n            tag.offset + self.num_bits - 8 *\
+      \ self.CRC_size,  # Absolute position of the CRC start\n            self.output_tag_key,\n\
+      \            gr.pmt.from_long(self.num_bytes),  # Length of the payload\n  \
+      \      )\n\n    def process_buffered_data(self):\n        # Process the buffered\
+      \ data once it has enough bits\n        payload_bits = self.buffer[:self.num_bits]\n\
+      \        self.process_payload(self.pending_tag, payload_bits)\n\n        # Empty\
+      \ the buffer and reset state\n        self.buffer = []\n        self.buffering_active\
+      \ = False\n        self.pending_tag = None\n        self.num_bits = 0\n\n  \
+      \  def binary_to_uint8_list(self, binary):\n        # Ensure the binary list\
+      \ length is a multiple of 8\n        if len(binary) % 8 != 0:\n            raise\
+      \ ValueError(\"The binary list length must be a multiple of 8.\")\n\n      \
+      \  uint8_list = []\n        for i in range(0, len(binary), 8):\n           \
+      \ # Extract 8 bits\n            byte = binary[i:i+8]\n\n            # Convert\
+      \ LSB to MSB bits to integer\n            uint8 = 0\n            for i, bit\
+      \ in enumerate(byte):\n                uint8 |= (bit << i)\n            uint8_list.append(uint8)\n\
+      \n        return uint8_list\n\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    input_tag: '''payload start'''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    output_tag: '''CRC start'''
+  states:
+    _io_cache: ('Read Payload', 'ReadPayload', [('input_tag', "'payload start'"),
+      ('output_tag', "'CRC start'"), ('CRC_size', '3')], [('0', 'byte', 1)], [('0',
+      'byte', 1)], '', ['CRC_size'])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [824, 624.0]
     rotation: 0
     state: enabled
 - name: low_pass_filter_0_0
@@ -670,7 +751,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1160, 608.0]
+    coordinate: [1312, 608.0]
     rotation: 0
     state: enabled
 - name: qtgui_waterfall_sink_x_0
@@ -773,7 +854,8 @@ connections:
 - [digital_binary_slicer_fb_0, '0', digital_correlate_access_code_tag_xx_0, '0']
 - [digital_correlate_access_code_tag_xx_0, '0', epy_block_0, '0']
 - [digital_symbol_sync_xx_0, '0', virtual_sink_0, '0']
-- [epy_block_0, '0', blocks_uchar_to_float_0_0_0, '0']
+- [epy_block_0, '0', epy_block_1, '0']
+- [epy_block_1, '0', blocks_uchar_to_float_0_0_0, '0']
 - [low_pass_filter_0_0, '0', analog_quadrature_demod_cf_0, '0']
 - [low_pass_filter_0_0, '0', qtgui_waterfall_sink_x_0, '0']
 - [virtual_source_0, '0', digital_binary_slicer_fb_0, '0']
