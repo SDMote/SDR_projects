@@ -74,7 +74,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.samp_rate = samp_rate = int(10e6)
         self.plot_N_bits = plot_N_bits = 1136
         self.fsk_deviation_hz = fsk_deviation_hz = int(250e3)
-        self.decimation = decimation = 1
+        self.decimation = decimation = 2
 
         ##################################################
         # Blocks
@@ -204,7 +204,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.epy_block_0 = epy_block_0.ReadPayloadLength(num_bits=8, input_tag='length start', output_tag='payload start')
         self.digital_symbol_sync_xx_0 = digital.symbol_sync_ff(
             digital.TED_EARLY_LATE,
-            samples_per_bit,
+            (samples_per_bit / decimation),
             0.045,
             1.0,
             1.0,
@@ -264,7 +264,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
 
     def set_samples_per_bit(self, samples_per_bit):
         self.samples_per_bit = samples_per_bit
-        self.digital_symbol_sync_xx_0.set_sps(self.samples_per_bit)
+        self.digital_symbol_sync_xx_0.set_sps((self.samples_per_bit / self.decimation))
         self.qtgui_time_sink_x_1.set_samp_rate(int(self.samp_rate / self.samples_per_bit))
         self.qtgui_time_sink_x_1_1.set_samp_rate(int(self.samp_rate / self.samples_per_bit))
 
@@ -297,6 +297,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
 
     def set_decimation(self, decimation):
         self.decimation = decimation
+        self.digital_symbol_sync_xx_0.set_sps((self.samples_per_bit / self.decimation))
 
 
 

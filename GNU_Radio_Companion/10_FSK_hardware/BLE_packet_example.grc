@@ -37,7 +37,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '1'
+    value: '2'
   states:
     bus_sink: false
     bus_source: false
@@ -270,7 +270,7 @@ blocks:
     osps: '1'
     pfb_mf_taps: '[]'
     resamp_type: digital.IR_MMSE_8TAP
-    sps: samples_per_bit
+    sps: samples_per_bit / decimation
     ted_gain: '1.0'
     ted_type: digital.TED_EARLY_LATE
     type: ff
