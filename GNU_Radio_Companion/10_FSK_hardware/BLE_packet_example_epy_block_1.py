@@ -11,7 +11,7 @@ from gnuradio import gr
 
 
 class ReadPayload(gr.sync_block):
-    def __init__(self, input_tag="payload start", output_tag="CRC start", CRC_size=3):
+    def __init__(self, input_tag="payload start", output_tag="CRC end", CRC_size=3):
         gr.sync_block.__init__(
             self,
             name="Read Payload",
@@ -42,28 +42,29 @@ class ReadPayload(gr.sync_block):
             self.buffer.extend(in_data)
             if len(self.buffer) >= self.num_bits:  # Check if we have enough bits
                 self.process_buffered_data()
-                
-        else:      
-            # If not buffering, look for a triggering tag that starts buffering or direct processing if possible within the window
-            for tag in tags:
-                if tag.key == self.input_tag_key:  # Look for triggering tag
-                    tag_pos_window = tag.offset - nread  # Position of the tag in the current window
+            else:
+                return len(output_items[0])
+                   
+        # If not buffering, look for a triggering tag that starts buffering or direct processing if possible within the window
+        for tag in tags:
+            if tag.key == self.input_tag_key:  # Look for triggering tag
+                tag_pos_window = tag.offset - nread  # Position of the tag in the current window
 
-                    self.num_bytes = (gr.pmt.to_long(tag.value) + self.CRC_size) # Number of bytes to read
-                    self.num_bits = 8 * self.num_bytes # Number of bits to read
+                self.num_bytes = (gr.pmt.to_long(tag.value) + self.CRC_size) # Number of bytes to read
+                self.num_bits = 8 * self.num_bytes # Number of bits to read
 
-                    # Check if the required number of bits is within the current chunk
-                    if tag_pos_window + self.num_bits <= len(in_data):
-                        # Extract the bits directly from the current chunk
-                        payload_bits = in_data[tag_pos_window:tag_pos_window + self.num_bits]
-                        self.process_payload(tag, payload_bits)
-                    else:
-                        # Start buffering if data spans multiple chunks
-                        self.buffering_active = True
-                        self.pending_tag = tag  # Store the tag for later use
-                        self.buffer = list(in_data[tag_pos_window:])  # Add available bits to buffer
+                # Check if the required number of bits is within the current chunk
+                if tag_pos_window + self.num_bits <= len(in_data):
+                    # Extract the bits directly from the current chunk
+                    payload_bits = in_data[tag_pos_window:tag_pos_window + self.num_bits]
+                    self.process_payload(tag, payload_bits)
+                else:
+                    # Start buffering if data spans multiple chunks
+                    self.buffering_active = True
+                    self.pending_tag = tag  # Store the tag for later use
+                    self.buffer = list(in_data[tag_pos_window:])  # Add available bits to buffer
 
-                    break  # Only analyse first triggering tag (in case there is more than one)
+                break  # Only analyse first triggering tag (in case there is more than one)
 
         return len(output_items[0])
     
@@ -80,12 +81,11 @@ class ReadPayload(gr.sync_block):
         payload_and_CRC = self.binary_to_uint8_list(payload_bits)
         self.print_log(tag, payload_and_CRC)
         
-        # Add a new tag for the start of the payload
         self.add_item_tag(
             0,  # Output port
-            tag.offset + self.num_bits - 8 * self.CRC_size,  # Absolute position of the CRC start
-            self.output_tag_key,
-            gr.pmt.from_long(self.num_bytes),  # Length of the payload
+            tag.offset + self.num_bits,
+            self.output_tag_key,  # String key
+            gr.pmt.from_long(self.num_bytes),  # Value
         )
 
     def process_buffered_data(self):
