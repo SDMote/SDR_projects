@@ -290,8 +290,8 @@ blocks:
       \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
       from gnuradio import gr\n\n\nclass ReadPayloadLength(gr.sync_block):\n    def\
       \ __init__(self, num_bits=16, length_byte_length=8, input_tag=\"length start\"\
-      , output_tag=\"payload start\"):\n        gr.sync_block.__init__(\n        \
-      \    self,\n            name=\"Read Payload Length\",\n            in_sig=[np.uint8],\
+      , output_tag=\"payload start\", whitening=True):\n        gr.sync_block.__init__(\n\
+      \            self,\n            name=\"Read Payload Length\",\n            in_sig=[np.uint8],\
       \  # Input is binary stream\n            out_sig=[np.uint8],  # Pass-through\
       \ output stream\n        )\n        self.input_tag_key = gr.pmt.intern(input_tag)\
       \  # Tag to search for\n        self.output_tag_key = gr.pmt.intern(output_tag)\
@@ -300,45 +300,66 @@ blocks:
       \  # Last number of bits that contain the length information\n        self.buffer\
       \ = []  # Buffer to hold data across chunks\n        self.buffering_active =\
       \ False  # Flag to indicate active buffering\n        self.pending_tag = None\
-      \  # Store the tag for processing when buffer is filled\n\n    def work(self,\
-      \ input_items, output_items):\n        in_data = input_items[0]  # Input stream\n\
-      \        out_data = output_items[0]  # Output stream\n        nread = self.nitems_read(0)\
-      \  # Number of items read so far on input\n        tags = self.get_tags_in_window(0,\
-      \ 0, len(in_data))  # Tags in current window\n\n        # Copy input to output\
-      \ (pass-through block)\n        out_data[:] = in_data\n\n        # Handle buffering\n\
-      \        if self.buffering_active:\n            self.buffer.extend(in_data)\n\
-      \            if len(self.buffer) >= self.num_bits:  # Check if we have enough\
-      \ bits\n                self.process_buffered_data()\n            else:\n  \
-      \              return len(output_items[0])\n                     \n        #\
-      \ If not buffering, look for a triggering tag that starts buffering or direct\
-      \ processing if possible within the window\n        for tag in tags:\n     \
-      \       if tag.key == self.input_tag_key:  # Look for triggering tag\n     \
-      \           tag_pos_window = tag.offset - nread  # Position of the tag in the\
-      \ current window\n                \n                # Check if the required\
-      \ number of bits is within the current chunk\n                if tag_pos_window\
+      \  # Store the tag for processing when buffer is filled\n\n        self.whitening=whitening\n\
+      \n    def work(self, input_items, output_items):\n        in_data = input_items[0]\
+      \  # Input stream\n        out_data = output_items[0]  # Output stream\n   \
+      \     nread = self.nitems_read(0)  # Number of items read so far on input\n\
+      \        tags = self.get_tags_in_window(0, 0, len(in_data))  # Tags in current\
+      \ window\n\n        # Copy input to output (pass-through block)\n        out_data[:]\
+      \ = in_data\n\n        # Handle buffering\n        if self.buffering_active:\n\
+      \            self.buffer.extend(in_data)\n            if len(self.buffer) >=\
+      \ self.num_bits:  # Check if we have enough bits\n                self.process_buffered_data()\n\
+      \            else:\n                return len(output_items[0])\n          \
+      \           \n        # If not buffering, look for a triggering tag that starts\
+      \ buffering or direct processing if possible within the window\n        for\
+      \ tag in tags:\n            if tag.key == self.input_tag_key:  # Look for triggering\
+      \ tag\n                tag_pos_window = tag.offset - nread  # Position of the\
+      \ tag in the current window\n                \n                # Check if the\
+      \ required number of bits is within the current chunk\n                if tag_pos_window\
       \ + self.num_bits <= len(in_data):\n                    # Extract the bits directly\
       \ from the current chunk\n                    payload_bits = in_data[tag_pos_window\
-      \ + self.num_bits - self.length_byte_length:tag_pos_window + self.num_bits]\n\
-      \                    self.process_payload(tag, payload_bits)\n             \
-      \   else:\n                    # Start buffering if data spans multiple chunks\n\
-      \                    self.buffering_active = True\n                    self.pending_tag\
-      \ = tag  # Store the tag for later use\n                    self.buffer = list(in_data[tag_pos_window:])\
-      \  # Add available bits to buffer\n\n                break  # Only analyse first\
-      \ triggering tag (in case there is more than one)\n\n        return len(output_items[0])\n\
+      \ : tag_pos_window + self.num_bits]\n                    self.process_payload(tag,\
+      \ payload_bits)\n                else:\n                    # Start buffering\
+      \ if data spans multiple chunks\n                    self.buffering_active =\
+      \ True\n                    self.pending_tag = tag  # Store the tag for later\
+      \ use\n                    self.buffer = list(in_data[tag_pos_window:])  # Add\
+      \ available bits to buffer\n\n                break  # Only analyse first triggering\
+      \ tag (in case there is more than one)\n\n        return len(output_items[0])\n\
       \n    def process_payload(self, tag, payload_bits):\n        # Convert bits\
-      \ to decimal\n        payload_length = self.binary_to_decimal(payload_bits)\n\
+      \ to decimal\n        payload_length = self.binary_to_uint8_array(payload_bits)\n\
       \n        # Add a new tag for the start of the payload\n        self.add_item_tag(\n\
       \            0,  # Output port\n            tag.offset + self.num_bits,  # Absolute\
       \ position of the payload start\n            self.output_tag_key,\n        \
-      \    gr.pmt.from_long(payload_length),  # Length of the payload\n        )\n\
-      \n    def process_buffered_data(self):\n        # Process the buffered data\
-      \ once it has enough bits\n        payload_bits = self.buffer[self.num_bits\
-      \ - self.length_byte_length:self.num_bits]\n        self.process_payload(self.pending_tag,\
-      \ payload_bits)\n\n        # Empty the buffer and reset state\n        self.buffer\
-      \ = []\n        self.buffering_active = False\n        self.pending_tag = None\n\
-      \n    def binary_to_decimal(self, binary):\n        # Convert LSB to MSB bits\
-      \ to integer\n        decimal = 0\n        for i, bit in enumerate(binary):\n\
-      \            decimal |= (bit << i)\n\n        return decimal\n"
+      \    gr.pmt.init_u8vector(2, payload_length),  # Length of the payload\n   \
+      \     )\n\n    def process_buffered_data(self):\n        # Process the buffered\
+      \ data once it has enough bits\n        payload_bits = self.buffer[:self.num_bits]\n\
+      \        self.process_payload(self.pending_tag, payload_bits)\n\n        # Empty\
+      \ the buffer and reset state\n        self.buffer = []\n        self.buffering_active\
+      \ = False\n        self.pending_tag = None\n    \n    def BLE_whitening(data,\
+      \ lfsr=0x01, polynomial=0x11):\n        # Input data must be LSB first (0x7C\
+      \ = 124 must be formatted as 0011 1110)\n        # LFSR default value is 0x01\
+      \ as it is the default value in the nRF DATAWHITEIV register\n        # The\
+      \ polynomial default value is 0x11 = 0b001_0001 -> x\u2077 + x\u2074 + 1 (x\u2077\
+      \ is omitted)\n        output = np.empty_like(data)  # Initialise output array\n\
+      \n        for idx, byte, in enumerate(data):\n            whitened_byte = 0\n\
+      \            for bit_pos in range(8):\n                # XOR the current data\
+      \ bit with LFSR MSB\n                lfsr_msb = (lfsr & 0x40) >> 6  # LFSR is\
+      \ 7-bit, so MSB is at position 6\n                data_bit = (byte >> bit_pos)\
+      \ & 1  # Extract current bit\n                whitened_bit = data_bit ^ lfsr_msb\
+      \  # XOR\n                \n                # Update the whitened byte\n   \
+      \             whitened_byte |= (whitened_bit << (bit_pos))\n\n             \
+      \   # Update LFSR\n                lfsr = (lfsr << 1) & 0x7F  # 0x7F mask to\
+      \ keep ksfr within 7 bits\n                if lfsr_msb:  # If MSB is 1 (before\
+      \ shifting), apply feedback\n                    lfsr = lfsr ^ polynomial  #\
+      \ XOR with predefined polynomial\n\n            output[idx] = whitened_byte\n\
+      \n        return output, lfsr\n    \n    def binary_to_uint8_array(self, binary):\
+      \       \n        # Ensure the binary array length is a multiple of 8\n    \
+      \    if len(binary) % 8 != 0:\n            raise ValueError(\"The binary list\
+      \ length must be a multiple of 8.\")\n        \n        # Convert binary to\
+      \ NumPy array\n        binary_array = np.array(binary, dtype=np.uint8)\n   \
+      \     binary_array = binary_array.reshape(-1, 8)[:, ::-1] #  LSB to MSB correction\n\
+      \        uint8_array = np.packbits(binary_array, axis=1).flatten()\n\n     \
+      \   return uint8_array\n"
     affinity: ''
     alias: ''
     comment: ''
@@ -348,14 +369,16 @@ blocks:
     minoutbuf: '0'
     num_bits: '16'
     output_tag: '''payload start'''
+    whitening: 'True'
   states:
     _io_cache: ('Read Payload Length', 'ReadPayloadLength', [('num_bits', '16'), ('length_byte_length',
-      '8'), ('input_tag', "'length start'"), ('output_tag', "'payload start'")], [('0',
-      'byte', 1)], [('0', 'byte', 1)], '', ['length_byte_length', 'num_bits'])
+      '8'), ('input_tag', "'length start'"), ('output_tag', "'payload start'"), ('whitening',
+      'True')], [('0', 'byte', 1)], [('0', 'byte', 1)], '', ['length_byte_length',
+      'num_bits', 'whitening'])
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [536, 584.0]
+    coordinate: [560, 576.0]
     rotation: 0
     state: enabled
 - name: epy_block_1
@@ -440,7 +463,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [816, 592.0]
+    coordinate: [1176, 720.0]
     rotation: 0
     state: disabled
 - name: low_pass_filter_0_0
