@@ -72,9 +72,9 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.tuning_LPF_cutoff_kHz = tuning_LPF_cutoff_kHz = 1000
         self.samples_per_bit = samples_per_bit = 10
         self.samp_rate = samp_rate = int(10e6)
-        self.plot_N_bits = plot_N_bits = 1136
+        self.plot_N_bits = plot_N_bits = 1502
         self.fsk_deviation_hz = fsk_deviation_hz = int(250e3)
-        self.decimation = decimation = 2
+        self.decimation = decimation = 1
 
         ##################################################
         # Blocks
@@ -201,7 +201,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
                 window.WIN_HAMMING,
                 6.76))
         self.epy_block_1 = epy_block_1.ReadPayload(input_tag='payload start', output_tag='CRC end', CRC_size=3)
-        self.epy_block_0 = epy_block_0.ReadPayloadLength(num_bits=8, input_tag='length start', output_tag='payload start')
+        self.epy_block_0 = epy_block_0.ReadPayloadLength(num_bits=16, length_byte_length=8, input_tag='length start', output_tag='payload start')
         self.digital_symbol_sync_xx_0 = digital.symbol_sync_ff(
             digital.TED_EARLY_LATE,
             (samples_per_bit / decimation),
@@ -214,12 +214,12 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
             digital.IR_MMSE_8TAP,
             128,
             [])
-        self.digital_correlate_access_code_tag_xx_0 = digital.correlate_access_code_tag_bb('01010101000111100110101000101100010010000000000000000000', 0, 'length start')
+        self.digital_correlate_access_code_tag_xx_0 = digital.correlate_access_code_tag_bb('010101010001111001101010001011000100100000000000', 0, 'length start')
         self.digital_binary_slicer_fb_0 = digital.binary_slicer_fb()
         self.blocks_uchar_to_float_0_0_0 = blocks.uchar_to_float()
         self.blocks_uchar_to_float_0 = blocks.uchar_to_float()
         self.blocks_throttle2_0 = blocks.throttle( gr.sizeof_gr_complex*1, (samp_rate/1000), True, 0 if "auto" == "auto" else max( int(float(0.1) * (samp_rate/1000)) if "auto" == "time" else int(0.1), 1) )
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/diego/Documents/SDR_projects/capture_nRF/data/BLE.dat', True, 0, 0)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/diego/Documents/SDR_projects/capture_nRF/data/BLE_whitening.dat', True, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
         self.analog_simple_squelch_cc_0 = analog.simple_squelch_cc((-50), 1)
         self.analog_quadrature_demod_cf_0 = analog.quadrature_demod_cf((samp_rate/(2*math.pi*fsk_deviation_hz)))
