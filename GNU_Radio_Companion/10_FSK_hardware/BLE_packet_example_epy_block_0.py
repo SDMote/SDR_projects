@@ -51,9 +51,7 @@ class ReadPayloadLength(gr.sync_block):
                 # Check if the required number of bits is within the current chunk
                 if tag_pos_window + self.num_bits <= len(in_data):
                     # Extract the bits directly from the current chunk
-                    start = tag_pos_window + self.num_bits - self.length_byte_length
-                    end = tag_pos_window + self.num_bits
-                    payload_bits = in_data[start:end]
+                    payload_bits = in_data[tag_pos_window + self.num_bits - self.length_byte_length:tag_pos_window + self.num_bits]
                     self.process_payload(tag, payload_bits)
                 else:
                     # Start buffering if data spans multiple chunks
@@ -79,7 +77,7 @@ class ReadPayloadLength(gr.sync_block):
 
     def process_buffered_data(self):
         # Process the buffered data once it has enough bits
-        payload_bits = self.buffer[:self.length_byte_length]
+        payload_bits = self.buffer[self.num_bits - self.length_byte_length:self.num_bits]
         self.process_payload(self.pending_tag, payload_bits)
 
         # Empty the buffer and reset state

@@ -27,7 +27,6 @@ from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 import BLE_packet_example_epy_block_0 as epy_block_0  # embedded python block
-import BLE_packet_example_epy_block_1 as epy_block_1  # embedded python block
 import sip
 import threading
 
@@ -200,7 +199,6 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
                 (samp_rate/100),
                 window.WIN_HAMMING,
                 6.76))
-        self.epy_block_1 = epy_block_1.ReadPayload(input_tag='payload start', output_tag='CRC end', CRC_size=3)
         self.epy_block_0 = epy_block_0.ReadPayloadLength(num_bits=16, length_byte_length=8, input_tag='length start', output_tag='payload start')
         self.digital_symbol_sync_xx_0 = digital.symbol_sync_ff(
             digital.TED_EARLY_LATE,
@@ -218,7 +216,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.digital_binary_slicer_fb_0 = digital.binary_slicer_fb()
         self.blocks_uchar_to_float_0_0_0 = blocks.uchar_to_float()
         self.blocks_uchar_to_float_0 = blocks.uchar_to_float()
-        self.blocks_throttle2_0 = blocks.throttle( gr.sizeof_gr_complex*1, (samp_rate/1000), True, 0 if "auto" == "auto" else max( int(float(0.1) * (samp_rate/1000)) if "auto" == "time" else int(0.1), 1) )
+        self.blocks_throttle2_0 = blocks.throttle( gr.sizeof_gr_complex*1, (samp_rate/100), True, 0 if "auto" == "auto" else max( int(float(0.1) * (samp_rate/100)) if "auto" == "time" else int(0.1), 1) )
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/diego/Documents/SDR_projects/capture_nRF/data/BLE_whitening.dat', True, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
         self.analog_simple_squelch_cc_0 = analog.simple_squelch_cc((-50), 1)
@@ -239,8 +237,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.connect((self.digital_correlate_access_code_tag_xx_0, 0), (self.epy_block_0, 0))
         self.connect((self.digital_symbol_sync_xx_0, 0), (self.digital_binary_slicer_fb_0, 0))
         self.connect((self.digital_symbol_sync_xx_0, 0), (self.qtgui_time_sink_x_1, 0))
-        self.connect((self.epy_block_0, 0), (self.epy_block_1, 0))
-        self.connect((self.epy_block_1, 0), (self.blocks_uchar_to_float_0_0_0, 0))
+        self.connect((self.epy_block_0, 0), (self.blocks_uchar_to_float_0_0_0, 0))
         self.connect((self.low_pass_filter_0_0, 0), (self.analog_quadrature_demod_cf_0, 0))
 
 
@@ -274,7 +271,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
         self.analog_quadrature_demod_cf_0.set_gain((self.samp_rate/(2*math.pi*self.fsk_deviation_hz)))
-        self.blocks_throttle2_0.set_sample_rate((self.samp_rate/1000))
+        self.blocks_throttle2_0.set_sample_rate((self.samp_rate/100))
         self.low_pass_filter_0_0.set_taps(firdes.low_pass(1, self.samp_rate, (self.tuning_LPF_cutoff_kHz*1000), (self.samp_rate/100), window.WIN_HAMMING, 6.76))
         self.qtgui_time_sink_x_1.set_samp_rate(int(self.samp_rate / self.samples_per_bit))
         self.qtgui_time_sink_x_1_1.set_samp_rate(int(self.samp_rate / self.samples_per_bit))

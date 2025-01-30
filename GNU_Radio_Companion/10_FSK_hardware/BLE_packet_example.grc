@@ -180,7 +180,7 @@ blocks:
     maximum: '0.1'
     maxoutbuf: '0'
     minoutbuf: '0'
-    samples_per_second: samp_rate/1000
+    samples_per_second: samp_rate/100
     type: complex
     vlen: '1'
   states:
@@ -317,13 +317,12 @@ blocks:
       \ current window\n                \n                # Check if the required\
       \ number of bits is within the current chunk\n                if tag_pos_window\
       \ + self.num_bits <= len(in_data):\n                    # Extract the bits directly\
-      \ from the current chunk\n                    start = tag_pos_window + self.num_bits\
-      \ - self.length_byte_length\n                    end = tag_pos_window + self.num_bits\n\
-      \                    payload_bits = in_data[start:end]\n                   \
-      \ self.process_payload(tag, payload_bits)\n                else:\n         \
-      \           # Start buffering if data spans multiple chunks\n              \
-      \      self.buffering_active = True\n                    self.pending_tag =\
-      \ tag  # Store the tag for later use\n                    self.buffer = list(in_data[tag_pos_window:])\
+      \ from the current chunk\n                    payload_bits = in_data[tag_pos_window\
+      \ + self.num_bits - self.length_byte_length:tag_pos_window + self.num_bits]\n\
+      \                    self.process_payload(tag, payload_bits)\n             \
+      \   else:\n                    # Start buffering if data spans multiple chunks\n\
+      \                    self.buffering_active = True\n                    self.pending_tag\
+      \ = tag  # Store the tag for later use\n                    self.buffer = list(in_data[tag_pos_window:])\
       \  # Add available bits to buffer\n\n                break  # Only analyse first\
       \ triggering tag (in case there is more than one)\n\n        return len(output_items[0])\n\
       \n    def process_payload(self, tag, payload_bits):\n        # Convert bits\
@@ -333,13 +332,13 @@ blocks:
       \ position of the payload start\n            self.output_tag_key,\n        \
       \    gr.pmt.from_long(payload_length),  # Length of the payload\n        )\n\
       \n    def process_buffered_data(self):\n        # Process the buffered data\
-      \ once it has enough bits\n        payload_bits = self.buffer[:self.length_byte_length]\n\
-      \        self.process_payload(self.pending_tag, payload_bits)\n\n        # Empty\
-      \ the buffer and reset state\n        self.buffer = []\n        self.buffering_active\
-      \ = False\n        self.pending_tag = None\n\n    def binary_to_decimal(self,\
-      \ binary):\n        # Convert LSB to MSB bits to integer\n        decimal =\
-      \ 0\n        for i, bit in enumerate(binary):\n            decimal |= (bit <<\
-      \ i)\n\n        return decimal\n"
+      \ once it has enough bits\n        payload_bits = self.buffer[self.num_bits\
+      \ - self.length_byte_length:self.num_bits]\n        self.process_payload(self.pending_tag,\
+      \ payload_bits)\n\n        # Empty the buffer and reset state\n        self.buffer\
+      \ = []\n        self.buffering_active = False\n        self.pending_tag = None\n\
+      \n    def binary_to_decimal(self, binary):\n        # Convert LSB to MSB bits\
+      \ to integer\n        decimal = 0\n        for i, bit in enumerate(binary):\n\
+      \            decimal |= (bit << i)\n\n        return decimal\n"
     affinity: ''
     alias: ''
     comment: ''
@@ -443,7 +442,7 @@ blocks:
     bus_structure: null
     coordinate: [816, 592.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: low_pass_filter_0_0
   id: low_pass_filter
   parameters:
@@ -861,6 +860,7 @@ connections:
 - [digital_binary_slicer_fb_0, '0', digital_correlate_access_code_tag_xx_0, '0']
 - [digital_correlate_access_code_tag_xx_0, '0', epy_block_0, '0']
 - [digital_symbol_sync_xx_0, '0', virtual_sink_0, '0']
+- [epy_block_0, '0', blocks_uchar_to_float_0_0_0, '0']
 - [epy_block_0, '0', epy_block_1, '0']
 - [epy_block_1, '0', blocks_uchar_to_float_0_0_0, '0']
 - [low_pass_filter_0_0, '0', analog_quadrature_demod_cf_0, '0']
