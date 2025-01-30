@@ -26,7 +26,7 @@ class ReadPayloadLength(gr.sync_block):
         self.buffering_active = False  # Flag to indicate active buffering
         self.pending_tag = None  # Store the tag for processing when buffer is filled
 
-        self.whitening = whitening
+        self.whitening=whitening
 
     def work(self, input_items, output_items):
         in_data = input_items[0]  # Input stream
@@ -67,14 +67,15 @@ class ReadPayloadLength(gr.sync_block):
 
     def process_payload(self, tag, payload_bits):
         # Convert bits to decimal
-        payload_length = self.binary_to_uint8_array(payload_bits)
+        data_bytes = self.binary_to_uint8_array(payload_bits)
+        whitened_data, lfsr = self.BLE_whitening(data_bytes)
 
         # Add a new tag for the start of the payload
         self.add_item_tag(
             0,  # Output port
             tag.offset + self.num_bits,  # Absolute position of the payload start
             self.output_tag_key,
-            gr.pmt.init_u8vector(2, payload_length),  # Length of the payload
+            gr.pmt.init_u8vector(2, whitened_data),  # Length of the payload
         )
 
     def process_buffered_data(self):
@@ -87,7 +88,7 @@ class ReadPayloadLength(gr.sync_block):
         self.buffering_active = False
         self.pending_tag = None
     
-    def BLE_whitening(data, lfsr=0x01, polynomial=0x11):
+    def BLE_whitening(self, data, lfsr=0x01, polynomial=0x11):
         # Input data must be LSB first (0x7C = 124 must be formatted as 0011 1110)
         # LFSR default value is 0x01 as it is the default value in the nRF DATAWHITEIV register
         # The polynomial default value is 0x11 = 0b001_0001 -> x⁷ + x⁴ + 1 (x⁷ is omitted)
