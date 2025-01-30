@@ -15,6 +15,7 @@ files = [
     "802154_tone_0dB_8dB", # 7
     "BLE", # 8
     "802154", # 9
+    "BLE_whitening", # 10
 ]
 
 # Parse command-line arguments

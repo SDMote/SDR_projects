@@ -83,7 +83,7 @@ class capture_nRF(gr.top_block, Qt.QWidget):
         self.iio_pluto_source_0.set_frequency(int(centre_freq))
         self.iio_pluto_source_0.set_samplerate(int(samp_rate))
         self.iio_pluto_source_0.set_gain_mode(0, 'manual')
-        self.iio_pluto_source_0.set_gain(0, 20)
+        self.iio_pluto_source_0.set_gain(0, 40)
         self.iio_pluto_source_0.set_quadrature(True)
         self.iio_pluto_source_0.set_rfdc(True)
         self.iio_pluto_source_0.set_bbdc(True)

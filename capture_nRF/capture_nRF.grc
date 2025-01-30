@@ -124,7 +124,7 @@ blocks:
     fstop: '0'
     gain1: '''manual'''
     len_tag_key: packet_len
-    manual_gain1: '20'
+    manual_gain1: '40'
     maxoutbuf: '0'
     minoutbuf: '0'
     quadrature: 'True'
@@ -136,7 +136,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [40, 236.0]
+    coordinate: [32, 268.0]
     rotation: 0
     state: enabled
 - name: low_pass_filter_0
