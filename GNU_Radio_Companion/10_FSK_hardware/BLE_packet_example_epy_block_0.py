@@ -20,12 +20,13 @@ class ReadPayloadLength(gr.sync_block):
         )
         self.input_tag_key = gr.pmt.intern(input_tag)  # Tag to search for
         self.output_tag_key = gr.pmt.intern(output_tag)  # Tag to apply on data stream
+
         self.total_bits = 8 * total_bytes  # Number of bits to read (last byte contains length information)
-        self.buffer = []  # Buffer to hold data across chunks
+        self.buffer = np.array([], dtype=np.uint8)  # Buffer to hold data across chunks
         self.buffering_active = False  # Flag to indicate active buffering
         self.pending_tag = None  # Store the tag for processing when buffer is filled
 
-        self.whitening=whitening
+        self.whitening = whitening
 
     def work(self, input_items, output_items):
         in_data = input_items[0]  # Input stream
@@ -38,43 +39,44 @@ class ReadPayloadLength(gr.sync_block):
 
         # Handle buffering
         if self.buffering_active:
-            self.buffer.extend(in_data)
+            self.buffer = np.append(self.buffer, in_data)
             if len(self.buffer) >= self.total_bits:  # Check if we have enough bits
                 self.process_buffered_data()
-            else:
-                return len(output_items[0])
-                     
+
         # If not buffering, look for a triggering tag that starts buffering or direct processing if possible within the window
-        for tag in tags:
-            if tag.key == self.input_tag_key:  # Look for triggering tag
-                tag_pos_window = tag.offset - nread  # Position of the tag in the current window
-                
-                # Check if the required number of bits is within the current chunk
-                if tag_pos_window + self.total_bits <= len(in_data):
-                    # Extract the bits directly from the current chunk
-                    payload_bits = in_data[tag_pos_window : tag_pos_window + self.total_bits]
-                    self.process_payload(tag, payload_bits)
-                else:
-                    # Start buffering if data spans multiple chunks
-                    self.buffering_active = True
-                    self.pending_tag = tag  # Store the tag for later use
-                    self.buffer = list(in_data[tag_pos_window:])  # Add available bits to buffer
+        # Assumes that packets are sent at least one window appart (worst case, 256 symbols)
+        else:          
+            for tag in tags:
+                if tag.key == self.input_tag_key:  # Look for triggering tag
+                    tag_pos_window = tag.offset - nread  # Position of the tag in the current window
+                    
+                    # Check if the required number of bits is within the current chunk
+                    if tag_pos_window + self.total_bits <= len(in_data):
+                        # Extract the bits directly from the current chunk
+                        payload_bits = in_data[tag_pos_window : tag_pos_window + self.total_bits]
+                        self.process_payload(tag, payload_bits)
+                    else:
+                        # Start buffering if data spans multiple chunks
+                        self.buffering_active = True
+                        self.pending_tag = tag  # Store the tag for later use
+                        self.buffer = np.array(in_data[tag_pos_window:], dtype=np.uint8)  # Add available bits to buffer
 
-                break  # Only analyse first triggering tag (in case there is more than one)
+                    break  # Only analyse first triggering tag (in case there is more than one)
 
-        return len(output_items[0])
+            return len(output_items[0])
 
     def process_payload(self, tag, payload_bits):
         # Convert bits to decimal
         data_bytes = self.binary_to_uint8_array(payload_bits)
-        whitened_data, lfsr = self.BLE_whitening(data_bytes)
+        if self.whitening:
+            data_bytes, lfsr = self.BLE_whitening(data_bytes)
 
         # Add a new tag for the start of the payload
         self.add_item_tag(
             0,  # Output port
             tag.offset + self.total_bits,  # Absolute position of the payload start
             self.output_tag_key,
-            gr.pmt.init_u8vector(2, bytearray([whitened_data[-1], lfsr])),  # Length of the payload
+            gr.pmt.init_u8vector(2, bytearray([data_bytes[-1], lfsr])),  # Length of the payload
         )
 
     def process_buffered_data(self):
@@ -83,7 +85,7 @@ class ReadPayloadLength(gr.sync_block):
         self.process_payload(self.pending_tag, payload_bits)
 
         # Empty the buffer and reset state
-        self.buffer = []
+        # self.buffer = np.array([], dtype=np.uint8)
         self.buffering_active = False
         self.pending_tag = None
     
