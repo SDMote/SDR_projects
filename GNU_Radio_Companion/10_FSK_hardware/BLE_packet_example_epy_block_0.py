@@ -11,7 +11,7 @@ from gnuradio import gr
 
 
 class ReadPayloadLength(gr.sync_block):
-    def __init__(self, num_bits=16, length_byte_length=8, input_tag="length start", output_tag="payload start", whitening=True):
+    def __init__(self, total_bytes=2, input_tag="length start", output_tag="payload start", whitening=True):
         gr.sync_block.__init__(
             self,
             name="Read Payload Length",
@@ -20,8 +20,7 @@ class ReadPayloadLength(gr.sync_block):
         )
         self.input_tag_key = gr.pmt.intern(input_tag)  # Tag to search for
         self.output_tag_key = gr.pmt.intern(output_tag)  # Tag to apply on data stream
-        self.num_bits = num_bits  # Number of bits to read (parameterised)
-        self.length_byte_length = length_byte_length  # Last number of bits that contain the length information
+        self.total_bits = 8 * total_bytes  # Number of bits to read (last byte contains length information)
         self.buffer = []  # Buffer to hold data across chunks
         self.buffering_active = False  # Flag to indicate active buffering
         self.pending_tag = None  # Store the tag for processing when buffer is filled
@@ -40,7 +39,7 @@ class ReadPayloadLength(gr.sync_block):
         # Handle buffering
         if self.buffering_active:
             self.buffer.extend(in_data)
-            if len(self.buffer) >= self.num_bits:  # Check if we have enough bits
+            if len(self.buffer) >= self.total_bits:  # Check if we have enough bits
                 self.process_buffered_data()
             else:
                 return len(output_items[0])
@@ -51,9 +50,9 @@ class ReadPayloadLength(gr.sync_block):
                 tag_pos_window = tag.offset - nread  # Position of the tag in the current window
                 
                 # Check if the required number of bits is within the current chunk
-                if tag_pos_window + self.num_bits <= len(in_data):
+                if tag_pos_window + self.total_bits <= len(in_data):
                     # Extract the bits directly from the current chunk
-                    payload_bits = in_data[tag_pos_window : tag_pos_window + self.num_bits]
+                    payload_bits = in_data[tag_pos_window : tag_pos_window + self.total_bits]
                     self.process_payload(tag, payload_bits)
                 else:
                     # Start buffering if data spans multiple chunks
@@ -73,14 +72,14 @@ class ReadPayloadLength(gr.sync_block):
         # Add a new tag for the start of the payload
         self.add_item_tag(
             0,  # Output port
-            tag.offset + self.num_bits,  # Absolute position of the payload start
+            tag.offset + self.total_bits,  # Absolute position of the payload start
             self.output_tag_key,
-            gr.pmt.init_u8vector(2, whitened_data),  # Length of the payload
+            gr.pmt.init_u8vector(2, bytearray([whitened_data[-1], lfsr])),  # Length of the payload
         )
 
     def process_buffered_data(self):
         # Process the buffered data once it has enough bits
-        payload_bits = self.buffer[:self.num_bits]
+        payload_bits = self.buffer[:self.total_bits]
         self.process_payload(self.pending_tag, payload_bits)
 
         # Empty the buffer and reset state
