@@ -9,7 +9,7 @@ options:
     description: ''
     gen_cmake: 'On'
     gen_linking: dynamic
-    generate_options: qt_gui
+    generate_options: no_gui
     hier_block_src_path: '.:'
     id: capture_nRF
     max_nouts: '0'
@@ -19,7 +19,7 @@ options:
     realtime_scheduling: ''
     run: 'True'
     run_command: '{python} -u {filename}'
-    run_options: prompt
+    run_options: run
     sizing_mode: fixed
     thread_safe_setters: ''
     title: capture_nRF
@@ -37,7 +37,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: 2425e6
+    value: 2423e6
   states:
     bus_sink: false
     bus_source: false
@@ -113,7 +113,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    bandwidth: '20000000'
+    bandwidth: '10000000'
     bbdc: 'True'
     buffer_size: '32768'
     comment: ''
@@ -124,7 +124,7 @@ blocks:
     fstop: '0'
     gain1: '''manual'''
     len_tag_key: packet_len
-    manual_gain1: '40'
+    manual_gain1: '30'
     maxoutbuf: '0'
     minoutbuf: '0'
     quadrature: 'True'
