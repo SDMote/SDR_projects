@@ -72,18 +72,26 @@ class ReadPayloadBLE(gr.sync_block):
         return len(output_items[0])
     
 
-    def print_log(self, tag, payload_and_CRC):
+    def print_log(self, tag, payload_and_CRC, CRC_check):
         print(f"Packet start sample: {tag.offset}, ")
         print(f"length: {self.total_bytes - self.CRC_size}, ")
-        print("CRC: " + " ".join(f"{byte:02X}" for byte in payload_and_CRC[-self.CRC_size:]))
+        crc_str = " ".join(f"{byte:02X}" for byte in payload_and_CRC[-self.CRC_size:])
+        print(f"CRC: {crc_str}, {'OK' if CRC_check else 'ERROR'}")
         print(" ".join(f"{byte:02X}" for byte in payload_and_CRC[:self.total_bytes - self.CRC_size]))
         print("")
 
     def process_payload(self, tag, payload_bits):
-        # Convert bits to decimal
-        payload_and_CRC = self.binary_to_uint8_array(payload_bits)
-        payload_and_CRC = self.BLE_whitening(payload_and_CRC, lfsr=self.lfsr)
-        self.print_log(tag, payload_and_CRC)
+        payload_and_CRC = self.binary_to_uint8_array(payload_bits)  # Convert bits to decimal
+        payload_and_CRC = self.BLE_whitening(payload_and_CRC, lfsr=self.lfsr)  # Dewhiten data
+
+        # CRC check
+        header = np.array([self.S0, self.total_bytes - self.CRC_size], dtype=np.uint8)
+        header_and_payload = np.concatenate((header, payload_and_CRC[:-self.CRC_size]))
+        computed_CRC = self.compute_CRC(header_and_payload)
+        CRC_check = True if (computed_CRC == payload_and_CRC[-self.CRC_size:]).all() else False
+
+        # Print log (use this section for storing the data as well)
+        self.print_log(tag, payload_and_CRC, CRC_check)
 
         # Tagging is bugged so no tags are added
 
@@ -98,6 +106,7 @@ class ReadPayloadBLE(gr.sync_block):
         self.total_bits = None
         self.total_bytes = None
         self.lfsr = None
+        self.S0 = None
     
     def binary_to_uint8_array(self, binary):       
         # Ensure the binary array length is a multiple of 8
@@ -138,4 +147,27 @@ class ReadPayloadBLE(gr.sync_block):
             output[idx] = whitened_byte
 
         return output
+    
+    def compute_CRC(self, data, crc_init=0x00FFFF, crc_poly=0x00065B, crc_size=3):
+        crc_mask = (1 << (crc_size * 8)) - 1  # Mask to n-byte width (0xFFFF for crc_size = 2)
+        
+        def swap_nbit(num, n):
+            num = num & crc_mask
+            reversed_bits = f'{{:0{n * 8}b}}'.format(num)[::-1]
+            return int(reversed_bits, 2)
+        
+        crc_init = swap_nbit(crc_init, crc_size)  # LSB -> MSB
+        crc_poly = swap_nbit(crc_poly, crc_size)
+        
+        crc = crc_init
+        for byte in data:
+            crc ^= int(byte)
+            for _ in range(8):  # Process each bit
+                if crc & 0x01:  # Check the LSB
+                    crc = (crc >> 1) ^ crc_poly
+                else:
+                    crc >>= 1
+                crc &= crc_mask  # Ensure CRC size
+        
+        return np.array([(crc >> (8 * i)) & 0xFF for i in range(crc_size)], dtype=np.uint8)
 
