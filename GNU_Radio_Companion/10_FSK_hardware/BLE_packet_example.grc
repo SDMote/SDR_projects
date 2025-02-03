@@ -332,8 +332,8 @@ blocks:
       \n        # Add a new tag for the start of the payload\n        self.add_item_tag(\n\
       \            0,  # Output port\n            tag.offset + self.total_bits,  #\
       \ Absolute position of the payload start\n            self.output_tag_key,\n\
-      \            gr.pmt.init_u8vector(2, bytearray([data_bytes[-1], lfsr])),  #\
-      \ Length of the payload\n        )\n\n    def process_buffered_data(self):\n\
+      \            gr.pmt.init_u8vector(3, bytearray([data_bytes[-2], data_bytes[-1],\
+      \ lfsr])),  # [S0, length, LFSR]\n        )\n\n    def process_buffered_data(self):\n\
       \        # Process the buffered data once it has enough bits\n        payload_bits\
       \ = self.buffer[:self.total_bits]\n        self.process_payload(self.pending_tag,\
       \ payload_bits)\n\n        # Reset buffering state\n        self.buffering_active\
@@ -414,19 +414,20 @@ blocks:
       \ self.input_tag_key:  # Look for triggering tag\n                    tag_pos_window\
       \ = tag.offset - nread  # Position of the tag in the current window\n\n    \
       \                # Initialise payload reading parameters\n                 \
-      \   self.total_bytes = (gr.pmt.u8vector_elements(tag.value)[0] + self.CRC_size)\
-      \  # Number of bytes to read\n                    self.total_bits = int(8 *\
-      \ self.total_bytes)  # Number of bits to read\n                    self.lfsr\
-      \ = gr.pmt.u8vector_elements(tag.value)[1]\n\n                    # Check if\
-      \ the required number of bits is within the current chunk\n                \
-      \    if tag_pos_window + self.total_bits <= len(in_data):\n                \
-      \        # Extract the bits directly from the current chunk\n              \
-      \          payload_bits = in_data[tag_pos_window:tag_pos_window + self.total_bits]\n\
-      \                        self.process_payload(tag, payload_bits)\n         \
-      \           else:\n                        # Start buffering if data spans multiple\
-      \ chunks\n                        self.buffering_active = True\n           \
-      \             self.pending_tag = tag  # Store the tag for later use\n      \
-      \                  self.buffer = np.array(in_data[tag_pos_window:], dtype=np.uint8)\
+      \   self.S0 = (gr.pmt.u8vector_elements(tag.value)[0]) # S0 value, necessary\
+      \ for CRC calculation\n                    self.total_bytes = (gr.pmt.u8vector_elements(tag.value)[1]\
+      \ + self.CRC_size)  # Number of bytes to read\n                    self.total_bits\
+      \ = int(8 * self.total_bytes)  # Number of bits to read\n                  \
+      \  self.lfsr = gr.pmt.u8vector_elements(tag.value)[2]\n\n                  \
+      \  # Check if the required number of bits is within the current chunk\n    \
+      \                if tag_pos_window + self.total_bits <= len(in_data):\n    \
+      \                    # Extract the bits directly from the current chunk\n  \
+      \                      payload_bits = in_data[tag_pos_window:tag_pos_window\
+      \ + self.total_bits]\n                        self.process_payload(tag, payload_bits)\n\
+      \                    else:\n                        # Start buffering if data\
+      \ spans multiple chunks\n                        self.buffering_active = True\n\
+      \                        self.pending_tag = tag  # Store the tag for later use\n\
+      \                        self.buffer = np.array(in_data[tag_pos_window:], dtype=np.uint8)\
       \  # Add available bits to buffer\n\n                    break  # Only analyse\
       \ first triggering tag (in case there is more than one in the same window)\n\
       \n        return len(output_items[0])\n    \n\n    def print_log(self, tag,\

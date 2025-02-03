@@ -76,7 +76,7 @@ class ReadPayloadLength(gr.sync_block):
             0,  # Output port
             tag.offset + self.total_bits,  # Absolute position of the payload start
             self.output_tag_key,
-            gr.pmt.init_u8vector(2, bytearray([data_bytes[-1], lfsr])),  # Length of the payload
+            gr.pmt.init_u8vector(3, bytearray([data_bytes[-2], data_bytes[-1], lfsr])),  # [S0, length, LFSR]
         )
 
     def process_buffered_data(self):

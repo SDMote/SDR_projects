@@ -51,9 +51,10 @@ class ReadPayloadBLE(gr.sync_block):
                     tag_pos_window = tag.offset - nread  # Position of the tag in the current window
 
                     # Initialise payload reading parameters
-                    self.total_bytes = (gr.pmt.u8vector_elements(tag.value)[0] + self.CRC_size)  # Number of bytes to read
+                    self.S0 = (gr.pmt.u8vector_elements(tag.value)[0]) # S0 value, necessary for CRC calculation
+                    self.total_bytes = (gr.pmt.u8vector_elements(tag.value)[1] + self.CRC_size)  # Number of bytes to read
                     self.total_bits = int(8 * self.total_bytes)  # Number of bits to read
-                    self.lfsr = gr.pmt.u8vector_elements(tag.value)[1]
+                    self.lfsr = gr.pmt.u8vector_elements(tag.value)[2]
 
                     # Check if the required number of bits is within the current chunk
                     if tag_pos_window + self.total_bits <= len(in_data):
