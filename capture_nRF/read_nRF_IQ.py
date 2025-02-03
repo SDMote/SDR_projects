@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 # Load complex binary file
 data = np.fromfile("data/nrf_IQ.dat", dtype=np.complex64)
 
-start_index = 120000
-end_index = 135000
+start_index = 90000
+end_index = 140000
 sliced_data = data[start_index:end_index]
 
 
@@ -20,9 +20,10 @@ files = ["BLE_802154_0dB_0dB", # 0
          "BLE", # 8
          "802154", # 9
          "BLE_whitening", # 10
+         "802154_capture2", # 11
 ]
 
-sliced_data.tofile(f"data/{files[10]}.dat")
+# sliced_data.tofile(f"data/{files[11]}.dat")
 
 plt.plot(np.real(data), label="I")
 plt.plot(np.imag(data), label="Q")

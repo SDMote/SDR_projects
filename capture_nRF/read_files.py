@@ -16,6 +16,7 @@ files = [
     "BLE", # 8
     "802154", # 9
     "BLE_whitening", # 10
+    "802154_capture2", # 11
 ]
 
 # Parse command-line arguments
@@ -40,6 +41,10 @@ def decode_bits(data, threshold):
 
 # Load data
 data = np.fromfile(f"data/{files[file_num]}.dat", dtype=np.complex64)
+print(len(data))
+phase_shift = -2 + np.pi/2 + np.pi
+phased_data = data * np.exp(1j * phase_shift)
+
 inst_freq = np.diff(np.unwrap(np.angle(data)))
 magnitude = np.abs(data[:-1])
 
@@ -67,8 +72,11 @@ fig, axes = plt.subplots(4, 1, figsize=(14, 10), gridspec_kw={'height_ratios': [
 time_iq = np.arange(len(data)) / fs * 1e6
 
 # Plot I and Q components
-axes[0].plot(time_iq, np.real(data), label="I (In-phase)")
-axes[0].plot(time_iq, np.imag(data), label="Q (Quadrature)")
+# axes[0].plot(time_iq, np.real(data), label="I (In-phase)")
+# axes[0].plot(time_iq, np.imag(data), label="Q (Quadrature)")
+axes[0].plot(time_iq, np.real(phased_data), label="I (In-phase)")
+axes[0].plot(time_iq, np.imag(phased_data), label="Q (Quadrature)")
+# axes[0].plot(time_iq, np.angle(data), label="Phase")
 axes[0].set_title("Time Domain Signal (I/Q Components)")
 axes[0].set_xlim(time[0], time[-1])
 axes[0].set_xlabel("Time (µs)")
