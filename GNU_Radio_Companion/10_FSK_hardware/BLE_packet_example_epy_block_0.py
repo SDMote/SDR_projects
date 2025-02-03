@@ -63,7 +63,7 @@ class ReadPayloadLength(gr.sync_block):
 
                     break  # Only analyse first triggering tag (in case there is more than one)
 
-            return len(output_items[0])
+        return len(output_items[0])
 
     def process_payload(self, tag, payload_bits):
         # Convert bits to decimal
@@ -84,8 +84,7 @@ class ReadPayloadLength(gr.sync_block):
         payload_bits = self.buffer[:self.total_bits]
         self.process_payload(self.pending_tag, payload_bits)
 
-        # Empty the buffer and reset state
-        # self.buffer = np.array([], dtype=np.uint8)
+        # Reset buffering state
         self.buffering_active = False
         self.pending_tag = None
     
@@ -107,9 +106,11 @@ class ReadPayloadLength(gr.sync_block):
                 whitened_byte |= (whitened_bit << (bit_pos))
 
                 # Update LFSR
-                lfsr = (lfsr << 1) & 0x7F  # 0x7F mask to keep ksfr within 7 bits
                 if lfsr_msb:  # If MSB is 1 (before shifting), apply feedback
-                    lfsr = lfsr ^ polynomial  # XOR with predefined polynomial
+                    lfsr = (lfsr << 1) ^ polynomial  # XOR with predefined polynomial
+                else:
+                    lfsr <<= 1
+                lfsr &= 0x7F  # 0x7F mask to keep ksfr within 7 bits
 
             output[idx] = whitened_byte
 
@@ -118,7 +119,7 @@ class ReadPayloadLength(gr.sync_block):
     def binary_to_uint8_array(self, binary):       
         # Ensure the binary array length is a multiple of 8
         if len(binary) % 8 != 0:
-            raise ValueError("The binary list length must be a multiple of 8.")
+            raise ValueError(f"The binary list {len(binary)} length must be a multiple of 8.")
         
         # Convert binary to NumPy array
         binary_array = np.array(binary, dtype=np.uint8)
