@@ -72,9 +72,9 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.tuning_LPF_cutoff_kHz = tuning_LPF_cutoff_kHz = 1000
         self.samples_per_bit = samples_per_bit = 10
         self.samp_rate = samp_rate = int(10e6)
-        self.plot_N_bits = plot_N_bits = 1502
+        self.plot_N_bits = plot_N_bits = 1500
         self.fsk_deviation_hz = fsk_deviation_hz = int(250e3)
-        self.decimation = decimation = 1
+        self.decimation = decimation = 2
 
         ##################################################
         # Blocks
@@ -88,7 +88,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         for c in range(0, 1):
             self.top_grid_layout.setColumnStretch(c, 1)
         self.qtgui_time_sink_x_1_1 = qtgui.time_sink_f(
-            (int(1/ decimation *plot_N_bits)), #size
+            int(plot_N_bits), #size
             int(samp_rate / samples_per_bit), #samp_rate
             "correlate output", #name
             1, #number of inputs
@@ -140,7 +140,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         for c in range(0, 1):
             self.top_grid_layout.setColumnStretch(c, 1)
         self.qtgui_time_sink_x_1 = qtgui.time_sink_f(
-            (int(1/ decimation *plot_N_bits)), #size
+            int(plot_N_bits), #size
             int(samp_rate / samples_per_bit), #samp_rate
             "Synced and downsampled", #name
             2, #number of inputs
@@ -203,7 +203,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.epy_block_1 = epy_block_1.ReadPayloadBLE(input_tag='payload start')
         self.epy_block_0 = epy_block_0.ReadPayloadLength(total_bytes=2, input_tag='length start', output_tag='payload start', whitening=True)
         self.digital_symbol_sync_xx_0 = digital.symbol_sync_ff(
-            digital.TED_EARLY_LATE,
+            digital.TED_MOD_MUELLER_AND_MULLER,
             (samples_per_bit / decimation),
             0.045,
             1.0,
@@ -222,7 +222,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/diego/Documents/SDR_projects/capture_nRF/data/BLE_whitening.dat', True, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
         self.analog_simple_squelch_cc_0 = analog.simple_squelch_cc((-50), 1)
-        self.analog_quadrature_demod_cf_0 = analog.quadrature_demod_cf((samp_rate/(2*math.pi*fsk_deviation_hz)))
+        self.analog_quadrature_demod_cf_0 = analog.quadrature_demod_cf(((samp_rate / decimation)/(2*math.pi*fsk_deviation_hz)))
 
 
         ##################################################
@@ -273,7 +273,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
-        self.analog_quadrature_demod_cf_0.set_gain((self.samp_rate/(2*math.pi*self.fsk_deviation_hz)))
+        self.analog_quadrature_demod_cf_0.set_gain(((self.samp_rate / self.decimation)/(2*math.pi*self.fsk_deviation_hz)))
         self.blocks_throttle2_0.set_sample_rate((self.samp_rate/400))
         self.low_pass_filter_0_0.set_taps(firdes.low_pass(1, self.samp_rate, (self.tuning_LPF_cutoff_kHz*1000), (self.samp_rate/100), window.WIN_HAMMING, 6.76))
         self.qtgui_time_sink_x_1.set_samp_rate(int(self.samp_rate / self.samples_per_bit))
@@ -290,13 +290,14 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
 
     def set_fsk_deviation_hz(self, fsk_deviation_hz):
         self.fsk_deviation_hz = fsk_deviation_hz
-        self.analog_quadrature_demod_cf_0.set_gain((self.samp_rate/(2*math.pi*self.fsk_deviation_hz)))
+        self.analog_quadrature_demod_cf_0.set_gain(((self.samp_rate / self.decimation)/(2*math.pi*self.fsk_deviation_hz)))
 
     def get_decimation(self):
         return self.decimation
 
     def set_decimation(self, decimation):
         self.decimation = decimation
+        self.analog_quadrature_demod_cf_0.set_gain(((self.samp_rate / self.decimation)/(2*math.pi*self.fsk_deviation_hz)))
         self.digital_symbol_sync_xx_0.set_sps((self.samples_per_bit / self.decimation))
 
 

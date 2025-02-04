@@ -37,7 +37,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '1'
+    value: '2'
   states:
     bus_sink: false
     bus_source: false
@@ -61,7 +61,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '1502'
+    value: '1500'
   states:
     bus_sink: false
     bus_source: false
@@ -120,7 +120,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    gain: samp_rate/(2*math.pi*fsk_deviation_hz)
+    gain: (samp_rate / decimation)/(2*math.pi*fsk_deviation_hz)
     maxoutbuf: '0'
     minoutbuf: '0'
   states:
@@ -272,13 +272,13 @@ blocks:
     resamp_type: digital.IR_MMSE_8TAP
     sps: samples_per_bit / decimation
     ted_gain: '1.0'
-    ted_type: digital.TED_EARLY_LATE
+    ted_type: digital.TED_MOD_MUELLER_AND_MULLER
     type: ff
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [968, 124.0]
+    coordinate: [1024, 124.0]
     rotation: 0
     state: enabled
 - name: epy_block_0
@@ -585,7 +585,7 @@ blocks:
     marker9: '-1'
     name: '"Synced and downsampled"'
     nconnections: '2'
-    size: int(1/ decimation *plot_N_bits)
+    size: int(plot_N_bits)
     srate: int(samp_rate / samples_per_bit)
     stemplot: 'False'
     style1: '1'
@@ -779,7 +779,7 @@ blocks:
     marker9: '-1'
     name: '"correlate output"'
     nconnections: '1'
-    size: int(1/ decimation *plot_N_bits)
+    size: int(plot_N_bits)
     srate: int(samp_rate / samples_per_bit)
     stemplot: 'False'
     style1: '1'
@@ -892,7 +892,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1336, 136.0]
+    coordinate: [1448, 136.0]
     rotation: 0
     state: enabled
 - name: virtual_source_0
