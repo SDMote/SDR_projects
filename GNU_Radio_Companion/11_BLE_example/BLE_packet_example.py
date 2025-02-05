@@ -80,7 +80,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         # Blocks
         ##################################################
 
-        self._tuning_LPF_cutoff_kHz_range = qtgui.Range(1, 2000, 1, 1000, 200)
+        self._tuning_LPF_cutoff_kHz_range = qtgui.Range(500, 2000, 1, 1000, 200)
         self._tuning_LPF_cutoff_kHz_win = qtgui.RangeWidget(self._tuning_LPF_cutoff_kHz_range, self.set_tuning_LPF_cutoff_kHz, "'tuning_LPF_cutoff_kHz'", "counter_slider", float, QtCore.Qt.Horizontal)
         self.top_grid_layout.addWidget(self._tuning_LPF_cutoff_kHz_win, 13, 0, 1, 1)
         for r in range(13, 14):

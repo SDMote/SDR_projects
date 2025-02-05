@@ -102,7 +102,7 @@ blocks:
     min_len: '200'
     orient: QtCore.Qt.Horizontal
     rangeType: float
-    start: '1'
+    start: '500'
     step: '1'
     stop: '2000'
     value: '1000'
@@ -495,9 +495,7 @@ blocks:
     affinity: ''
     alias: ''
     beta: '6.76'
-    comment: 'filter to only pass
-
-      information around 0Hz'
+    comment: ''
     cutoff_freq: tuning_LPF_cutoff_kHz*1000
     decim: decimation
     gain: '1'
@@ -667,8 +665,8 @@ blocks:
     marker9: '-1'
     name: '"Quad Demodded"'
     nconnections: '1'
-    size: int(samples_per_bit/ decimation *plot_N_bits)
-    srate: int(samp_rate)
+    size: int( 10*plot_N_bits/ decimation)
+    srate: int(samp_rate / decimation)
     stemplot: 'False'
     style1: '1'
     style10: '1'
