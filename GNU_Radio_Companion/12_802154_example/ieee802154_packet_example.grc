@@ -1,0 +1,889 @@
+options:
+  parameters:
+    author: ''
+    catch_exceptions: 'True'
+    category: '[GRC Hier Blocks]'
+    cmake_opt: ''
+    comment: ''
+    copyright: ''
+    description: ''
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: qt_gui
+    hier_block_src_path: '.:'
+    id: ieee802154_packet_example
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: ieee802154_packet_example
+    window_size: (1000,1000)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 8]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: decimation
+  id: variable
+  parameters:
+    comment: ''
+    value: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [344, 16.0]
+    rotation: 0
+    state: enabled
+- name: fsk_deviation_hz
+  id: variable
+  parameters:
+    comment: ''
+    value: int(500e3)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [456, 16.0]
+    rotation: 0
+    state: enabled
+- name: plot_N_bits
+  id: variable
+  parameters:
+    comment: ''
+    value: '5000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [736, 16.0]
+    rotation: 0
+    state: enabled
+- name: samp_rate
+  id: variable
+  parameters:
+    comment: ''
+    value: int(10e6)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [224, 8.0]
+    rotation: 0
+    state: enabled
+- name: samples_per_chip
+  id: variable
+  parameters:
+    comment: ''
+    value: '5'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [592, 16.0]
+    rotation: 0
+    state: enabled
+- name: tuning_LPF_cutoff_kHz
+  id: variable_qtgui_range
+  parameters:
+    comment: ''
+    gui_hint: 13,0
+    label: ''
+    min_len: '200'
+    orient: QtCore.Qt.Horizontal
+    rangeType: float
+    start: '1000'
+    step: '1'
+    stop: '5000'
+    value: '2000'
+    widget: counter_slider
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [288, 376.0]
+    rotation: 0
+    state: true
+- name: analog_quadrature_demod_cf_0
+  id: analog_quadrature_demod_cf
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    gain: (samp_rate / decimation)/(2*math.pi*fsk_deviation_hz)
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [536, 280.0]
+    rotation: 0
+    state: enabled
+- name: analog_simple_squelch_cc_0
+  id: analog_simple_squelch_cc
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha: '1'
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    threshold: '-50'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [72, 272.0]
+    rotation: 0
+    state: enabled
+- name: blocks_file_source_0
+  id: blocks_file_source
+  parameters:
+    affinity: ''
+    alias: ''
+    begin_tag: pmt.PMT_NIL
+    comment: ''
+    file: /home/diego/Documents/SDR_projects/capture_nRF/data/802154_capture2.dat
+    length: '0'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    offset: '0'
+    repeat: 'True'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [24, 136.0]
+    rotation: 0
+    state: enabled
+- name: blocks_message_debug_0
+  id: blocks_message_debug
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    en_uvec: 'True'
+    log_level: info
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [912, 400.0]
+    rotation: 0
+    state: enabled
+- name: blocks_sub_xx_0
+  id: blocks_sub_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [952, 288.0]
+    rotation: 0
+    state: enabled
+- name: blocks_throttle2_0
+  id: blocks_throttle2
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    ignoretag: 'True'
+    limit: auto
+    maximum: '0.1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samples_per_second: samp_rate/400
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [264, 160.0]
+    rotation: 0
+    state: enabled
+- name: blocks_uchar_to_float_0_0_0
+  id: blocks_uchar_to_float
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1128, 624.0]
+    rotation: 0
+    state: enabled
+- name: digital_binary_slicer_fb_0
+  id: digital_binary_slicer_fb
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [80, 624.0]
+    rotation: 0
+    state: enabled
+- name: digital_correlate_access_code_tag_xx_0
+  id: digital_correlate_access_code_tag_xx
+  parameters:
+    access_code: ''
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    tagname: length start
+    threshold: '0'
+    type: byte
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [272, 600.0]
+    rotation: 0
+    state: bypassed
+- name: digital_symbol_sync_xx_0
+  id: digital_symbol_sync_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    constellation: digital.constellation_bpsk().base()
+    damping: '1.0'
+    loop_bw: '0.045'
+    max_dev: '1.5'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    nfilters: '128'
+    osps: '1'
+    pfb_mf_taps: '[]'
+    resamp_type: digital.IR_MMSE_8TAP
+    sps: samples_per_chip / decimation
+    ted_gain: '1.0'
+    ted_type: digital.TED_MOD_MUELLER_AND_MULLER
+    type: ff
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1072, 100.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_0
+  id: epy_block
+  parameters:
+    _source_code: "\"\"\"\nEmbedded Python Blocks:\n\nEach time this file is saved,\
+      \ GRC will instantiate the first class it finds\nto get ports and parameters\
+      \ of your block. The arguments to __init__  will\nbe the parameters. All of\
+      \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
+      from gnuradio import gr\n\n\nclass ReadPayloadLength(gr.sync_block):\n    def\
+      \ __init__(self, total_bytes=2, input_tag=\"length start\", output_tag=\"payload\
+      \ start\", whitening=True):\n        gr.sync_block.__init__(\n            self,\n\
+      \            name=\"Read Payload Length\",\n            in_sig=[np.uint8], \
+      \ # Input is binary stream\n            out_sig=[np.uint8],  # Pass-through\
+      \ output stream\n        )\n        self.input_tag_key = gr.pmt.intern(input_tag)\
+      \  # Tag to search for\n        self.output_tag_key = gr.pmt.intern(output_tag)\
+      \  # Tag to apply on data stream\n\n        self.total_bits = 8 * total_bytes\
+      \  # Number of bits to read (last byte contains length information)\n      \
+      \  self.buffer = np.array([], dtype=np.uint8)  # Buffer to hold data across\
+      \ chunks\n        self.buffering_active = False  # Flag to indicate active buffering\n\
+      \        self.pending_tag = None  # Store the tag for processing when buffer\
+      \ is filled\n\n        self.whitening = whitening\n\n    def work(self, input_items,\
+      \ output_items):\n        in_data = input_items[0]  # Input stream\n       \
+      \ out_data = output_items[0]  # Output stream\n        nread = self.nitems_read(0)\
+      \  # Number of items read so far on input\n        tags = self.get_tags_in_window(0,\
+      \ 0, len(in_data))  # Tags in current window\n\n        # Copy input to output\
+      \ (pass-through block)\n        out_data[:] = in_data\n\n        # Handle buffering\n\
+      \        if self.buffering_active:\n            self.buffer = np.append(self.buffer,\
+      \ in_data)\n            if len(self.buffer) >= self.total_bits:  # Check if\
+      \ we have enough bits\n                self.process_buffered_data()\n\n    \
+      \    # If not buffering, look for a triggering tag that starts buffering or\
+      \ direct processing if possible within the window\n        # Assumes that packets\
+      \ are sent at least one window appart (worst case, 256 symbols)\n        else:\
+      \          \n            for tag in tags:\n                if tag.key == self.input_tag_key:\
+      \  # Look for triggering tag\n                    tag_pos_window = tag.offset\
+      \ - nread  # Position of the tag in the current window\n                   \
+      \ \n                    # Check if the required number of bits is within the\
+      \ current chunk\n                    if tag_pos_window + self.total_bits <=\
+      \ len(in_data):\n                        # Extract the bits directly from the\
+      \ current chunk\n                        payload_bits = in_data[tag_pos_window\
+      \ : tag_pos_window + self.total_bits]\n                        self.process_payload(tag,\
+      \ payload_bits)\n                    else:\n                        # Start\
+      \ buffering if data spans multiple chunks\n                        self.buffering_active\
+      \ = True\n                        self.pending_tag = tag  # Store the tag for\
+      \ later use\n                        self.buffer = np.array(in_data[tag_pos_window:],\
+      \ dtype=np.uint8)  # Add available bits to buffer\n\n                    break\
+      \  # Only analyse first triggering tag (in case there is more than one)\n\n\
+      \        return len(output_items[0])\n\n    def process_payload(self, tag, payload_bits):\n\
+      \        # Convert bits to decimal\n        data_bytes = self.binary_to_uint8_array(payload_bits)\n\
+      \        if self.whitening:\n            data_bytes, lfsr = self.BLE_whitening(data_bytes)\n\
+      \n        # Add a new tag for the start of the payload\n        self.add_item_tag(\n\
+      \            0,  # Output port\n            tag.offset + self.total_bits,  #\
+      \ Absolute position of the payload start\n            self.output_tag_key,\n\
+      \            gr.pmt.init_u8vector(3, bytearray([data_bytes[-2], data_bytes[-1],\
+      \ lfsr])),  # [S0, length, LFSR]\n        )\n\n    def process_buffered_data(self):\n\
+      \        # Process the buffered data once it has enough bits\n        payload_bits\
+      \ = self.buffer[:self.total_bits]\n        self.process_payload(self.pending_tag,\
+      \ payload_bits)\n\n        # Reset buffering state\n        self.buffering_active\
+      \ = False\n        self.pending_tag = None\n    \n    def BLE_whitening(self,\
+      \ data, lfsr=0x01, polynomial=0x11):\n        # Input data must be LSB first\
+      \ (0x7C = 124 must be formatted as 0011 1110)\n        # LFSR default value\
+      \ is 0x01 as it is the default value in the nRF DATAWHITEIV register\n     \
+      \   # The polynomial default value is 0x11 = 0b001_0001 -> x\u2077 + x\u2074\
+      \ + 1 (x\u2077 is omitted)\n        output = np.empty_like(data)  # Initialise\
+      \ output array\n\n        for idx, byte, in enumerate(data):\n            whitened_byte\
+      \ = 0\n            for bit_pos in range(8):\n                # XOR the current\
+      \ data bit with LFSR MSB\n                lfsr_msb = (lfsr & 0x40) >> 6  # LFSR\
+      \ is 7-bit, so MSB is at position 6\n                data_bit = (byte >> bit_pos)\
+      \ & 1  # Extract current bit\n                whitened_bit = data_bit ^ lfsr_msb\
+      \  # XOR\n                \n                # Update the whitened byte\n   \
+      \             whitened_byte |= (whitened_bit << (bit_pos))\n\n             \
+      \   # Update LFSR\n                if lfsr_msb:  # If MSB is 1 (before shifting),\
+      \ apply feedback\n                    lfsr = (lfsr << 1) ^ polynomial  # XOR\
+      \ with predefined polynomial\n                else:\n                    lfsr\
+      \ <<= 1\n                lfsr &= 0x7F  # 0x7F mask to keep ksfr within 7 bits\n\
+      \n            output[idx] = whitened_byte\n\n        return output, lfsr\n \
+      \   \n    def binary_to_uint8_array(self, binary):       \n        # Ensure\
+      \ the binary array length is a multiple of 8\n        if len(binary) % 8 !=\
+      \ 0:\n            raise ValueError(f\"The binary list {len(binary)} length must\
+      \ be a multiple of 8.\")\n        \n        # Convert binary to NumPy array\n\
+      \        binary_array = np.array(binary, dtype=np.uint8)\n        binary_array\
+      \ = binary_array.reshape(-1, 8)[:, ::-1] #  LSB to MSB correction\n        uint8_array\
+      \ = np.packbits(binary_array, axis=1).flatten()\n\n        return uint8_array\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    input_tag: '''length start'''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    output_tag: '''payload start'''
+    total_bytes: '2'
+    whitening: 'True'
+  states:
+    _io_cache: ('Read Payload Length', 'ReadPayloadLength', [('total_bytes', '2'),
+      ('input_tag', "'length start'"), ('output_tag', "'payload start'"), ('whitening',
+      'True')], [('0', 'byte', 1)], [('0', 'byte', 1)], '', ['whitening'])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [584, 592.0]
+    rotation: 0
+    state: bypassed
+- name: epy_block_1
+  id: epy_block
+  parameters:
+    _source_code: "\"\"\"\nEmbedded Python Blocks:\n\nEach time this file is saved,\
+      \ GRC will instantiate the first class it finds\nto get ports and parameters\
+      \ of your block. The arguments to __init__  will\nbe the parameters. All of\
+      \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
+      from gnuradio import gr\n\n\nclass ReadPayloadBLE(gr.sync_block):\n    def __init__(self,\
+      \ input_tag=\"payload start\"):\n        gr.sync_block.__init__(\n         \
+      \   self,\n            name=\"Read Payload BLE\",\n            in_sig=[np.uint8],\
+      \  # Input is binary stream\n            out_sig=[np.uint8],  # Pass-through\
+      \ output stream\n        )\n        self.input_tag_key = gr.pmt.intern(input_tag)\
+      \  # Tag to search for\n        self.CRC_size = 3  # CRC size in bytes\n\n \
+      \       self.total_bits = None  # Number of bits to read\n        self.buffer\
+      \ = np.array([], dtype=np.uint8)  # Buffer to hold data across chunks\n    \
+      \    self.buffering_active = False  # Flag to indicate active buffering\n  \
+      \      self.pending_tag = None  # Store the tag for processing when buffer is\
+      \ filled\n\n        self.lfsr = None\n\n    def work(self, input_items, output_items):\n\
+      \        in_data = input_items[0]  # Input stream\n        out_data = output_items[0]\
+      \  # Output stream\n        nread = self.nitems_read(0)  # Number of items read\
+      \ so far on input\n        tags = self.get_tags_in_window(0, 0, len(in_data))\
+      \  # Tags in current window\n\n        # Copy input to output (pass-through\
+      \ block)\n        out_data[:] = in_data\n\n        # Handle buffering\n    \
+      \    if self.buffering_active:\n            self.buffer = np.append(self.buffer,\
+      \ in_data)\n            if len(self.buffer) >= self.total_bits:  # Check if\
+      \ we have enough bits\n                self.process_buffered_data()\n      \
+      \             \n        # If not buffering, look for a triggering tag that starts\
+      \ buffering or direct processing if possible within the window\n        # Assumes\
+      \ that packets are sent at least one window appart (worst case, 256 symbols)\n\
+      \        else:\n            for tag in tags:\n                if tag.key ==\
+      \ self.input_tag_key:  # Look for triggering tag\n                    tag_pos_window\
+      \ = tag.offset - nread  # Position of the tag in the current window\n\n    \
+      \                # Initialise payload reading parameters\n                 \
+      \   self.S0 = (gr.pmt.u8vector_elements(tag.value)[0]) # S0 value, necessary\
+      \ for CRC calculation\n                    self.total_bytes = (gr.pmt.u8vector_elements(tag.value)[1]\
+      \ + self.CRC_size)  # Number of bytes to read\n                    self.total_bits\
+      \ = int(8 * self.total_bytes)  # Number of bits to read\n                  \
+      \  self.lfsr = gr.pmt.u8vector_elements(tag.value)[2]\n\n                  \
+      \  # Check if the required number of bits is within the current chunk\n    \
+      \                if tag_pos_window + self.total_bits <= len(in_data):\n    \
+      \                    # Extract the bits directly from the current chunk\n  \
+      \                      payload_bits = in_data[tag_pos_window:tag_pos_window\
+      \ + self.total_bits]\n                        self.process_payload(tag, payload_bits)\n\
+      \                    else:\n                        # Start buffering if data\
+      \ spans multiple chunks\n                        self.buffering_active = True\n\
+      \                        self.pending_tag = tag  # Store the tag for later use\n\
+      \                        self.buffer = np.array(in_data[tag_pos_window:], dtype=np.uint8)\
+      \  # Add available bits to buffer\n\n                    break  # Only analyse\
+      \ first triggering tag (in case there is more than one in the same window)\n\
+      \n        return len(output_items[0])\n    \n\n    def print_log(self, tag,\
+      \ payload_and_CRC, CRC_check):\n        print(f\"Packet start sample: {tag.offset},\
+      \ \")\n        print(f\"length: {self.total_bytes - self.CRC_size}, \")\n  \
+      \      crc_str = \" \".join(f\"{byte:02X}\" for byte in payload_and_CRC[-self.CRC_size:])\n\
+      \        print(f\"CRC: {crc_str}, {'OK' if CRC_check else 'ERROR'}\")\n    \
+      \    print(\" \".join(f\"{byte:02X}\" for byte in payload_and_CRC[:self.total_bytes\
+      \ - self.CRC_size]))\n        print(\"\")\n\n    def process_payload(self, tag,\
+      \ payload_bits):\n        payload_and_CRC = self.binary_to_uint8_array(payload_bits)\
+      \  # Convert bits to decimal\n        payload_and_CRC = self.BLE_whitening(payload_and_CRC,\
+      \ lfsr=self.lfsr)  # Dewhiten data\n\n        # CRC check\n        header =\
+      \ np.array([self.S0, self.total_bytes - self.CRC_size], dtype=np.uint8)\n  \
+      \      header_and_payload = np.concatenate((header, payload_and_CRC[:-self.CRC_size]))\n\
+      \        computed_CRC = self.compute_CRC(header_and_payload)\n        CRC_check\
+      \ = True if (computed_CRC == payload_and_CRC[-self.CRC_size:]).all() else False\n\
+      \n        # Print log (use this section for storing the data as well)\n    \
+      \    self.print_log(tag, payload_and_CRC, CRC_check)\n\n        # Tagging is\
+      \ bugged so no tags are added\n\n    def process_buffered_data(self):\n    \
+      \    # Process the buffered data once it has enough bits\n        payload_bits\
+      \ = self.buffer[:self.total_bits]\n        self.process_payload(self.pending_tag,\
+      \ payload_bits)\n\n        # Reset buffering state\n        self.buffering_active\
+      \ = False\n        self.pending_tag = None\n        self.total_bits = None\n\
+      \        self.total_bytes = None\n        self.lfsr = None\n        self.S0\
+      \ = None\n    \n    def binary_to_uint8_array(self, binary):       \n      \
+      \  # Ensure the binary array length is a multiple of 8\n        if len(binary)\
+      \ % 8 != 0:\n            raise ValueError(f\"The binary list {len(binary)} length\
+      \ must be a multiple of 8.\")\n        \n        # Convert binary to NumPy array\n\
+      \        binary_array = np.array(binary, dtype=np.uint8)\n        binary_array\
+      \ = binary_array.reshape(-1, 8)[:, ::-1] #  LSB to MSB correction\n        uint8_array\
+      \ = np.packbits(binary_array, axis=1).flatten()\n\n        return uint8_array\n\
+      \    \n    def BLE_whitening(self, data, lfsr=0x01, polynomial=0x11):\n    \
+      \    # Input data must be LSB first (0x7C = 124 must be formatted as 0011 1110)\n\
+      \        # LFSR default value is 0x01 as it is the default value in the nRF\
+      \ DATAWHITEIV register\n        # The polynomial default value is 0x11 = 0b001_0001\
+      \ -> x\u2077 + x\u2074 + 1 (x\u2077 is omitted)\n        output = np.empty_like(data)\
+      \  # Initialise output array\n\n        for idx, byte, in enumerate(data):\n\
+      \            whitened_byte = 0\n            for bit_pos in range(8):\n     \
+      \           # XOR the current data bit with LFSR MSB\n                lfsr_msb\
+      \ = (lfsr & 0x40) >> 6  # LFSR is 7-bit, so MSB is at position 6\n         \
+      \       data_bit = (byte >> bit_pos) & 1  # Extract current bit\n          \
+      \      whitened_bit = data_bit ^ lfsr_msb  # XOR\n                \n       \
+      \         # Update the whitened byte\n                whitened_byte |= (whitened_bit\
+      \ << (bit_pos))\n\n                # Update LFSR\n                if lfsr_msb:\
+      \  # If MSB is 1 (before shifting), apply feedback\n                    lfsr\
+      \ = (lfsr << 1) ^ polynomial  # XOR with predefined polynomial\n           \
+      \     else:\n                    lfsr <<= 1\n                lfsr &= 0x7F  #\
+      \ 0x7F mask to keep ksfr within 7 bits\n\n            output[idx] = whitened_byte\n\
+      \n        return output\n    \n    def compute_CRC(self, data, crc_init=0x00FFFF,\
+      \ crc_poly=0x00065B, crc_size=3):\n        crc_mask = (1 << (crc_size * 8))\
+      \ - 1  # Mask to n-byte width (0xFFFF for crc_size = 2)\n        \n        def\
+      \ swap_nbit(num, n):\n            num = num & crc_mask\n            reversed_bits\
+      \ = f'{{:0{n * 8}b}}'.format(num)[::-1]\n            return int(reversed_bits,\
+      \ 2)\n        \n        crc_init = swap_nbit(crc_init, crc_size)  # LSB -> MSB\n\
+      \        crc_poly = swap_nbit(crc_poly, crc_size)\n        \n        crc = crc_init\n\
+      \        for byte in data:\n            crc ^= int(byte)\n            for _\
+      \ in range(8):  # Process each bit\n                if crc & 0x01:  # Check\
+      \ the LSB\n                    crc = (crc >> 1) ^ crc_poly\n               \
+      \ else:\n                    crc >>= 1\n                crc &= crc_mask  # Ensure\
+      \ CRC size\n        \n        return np.array([(crc >> (8 * i)) & 0xFF for i\
+      \ in range(crc_size)], dtype=np.uint8)\n\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    input_tag: '''payload start'''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('Read Payload BLE', 'ReadPayloadBLE', [('input_tag', "'payload start'")],
+      [('0', 'byte', 1)], [('0', 'byte', 1)], '', [])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [864, 616.0]
+    rotation: 0
+    state: bypassed
+- name: ieee802_15_4_packet_sink_0
+  id: ieee802_15_4_packet_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    th: '10'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [656, 440.0]
+    rotation: 0
+    state: enabled
+- name: low_pass_filter_0_0
+  id: low_pass_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    beta: '6.76'
+    comment: ''
+    cutoff_freq: tuning_LPF_cutoff_kHz*1000
+    decim: decimation
+    gain: '1'
+    interp: '100'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: samp_rate
+    type: fir_filter_ccf
+    width: samp_rate/100
+    win: window.WIN_HAMMING
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [296, 240.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_time_sink_x_1
+  id: qtgui_time_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'False'
+    axislabels: 'True'
+    color1: blue
+    color10: dark blue
+    color2: red
+    color3: green
+    color4: black
+    color5: cyan
+    color6: magenta
+    color7: yellow
+    color8: dark red
+    color9: dark green
+    comment: ''
+    ctrlpanel: 'False'
+    entags: 'True'
+    grid: 'False'
+    gui_hint: 16,0
+    label1: '"Quad Demodded"'
+    label10: Signal 10
+    label2: '"Sliced"'
+    label3: Signal 3
+    label4: Signal 4
+    label5: Signal 5
+    label6: Signal 6
+    label7: Signal 7
+    label8: Signal 8
+    label9: Signal 9
+    legend: 'True'
+    marker1: '-1'
+    marker10: '-1'
+    marker2: '0'
+    marker3: '-1'
+    marker4: '-1'
+    marker5: '-1'
+    marker6: '-1'
+    marker7: '-1'
+    marker8: '-1'
+    marker9: '-1'
+    name: '"Synced and downsampled"'
+    nconnections: '2'
+    size: int(2*plot_N_bits)
+    srate: int(samp_rate / samples_per_chip)
+    stemplot: 'False'
+    style1: '1'
+    style10: '1'
+    style2: '1'
+    style3: '1'
+    style4: '1'
+    style5: '1'
+    style6: '1'
+    style7: '1'
+    style8: '1'
+    style9: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: float
+    update_time: '0.10'
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    ylabel: Amplitude
+    ymax: '2'
+    ymin: '-2'
+    yunit: '""'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1352, 512.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_time_sink_x_1_0
+  id: qtgui_time_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'False'
+    axislabels: 'True'
+    color1: blue
+    color10: dark blue
+    color2: red
+    color3: green
+    color4: black
+    color5: cyan
+    color6: magenta
+    color7: yellow
+    color8: dark red
+    color9: dark green
+    comment: ''
+    ctrlpanel: 'False'
+    entags: 'True'
+    grid: 'False'
+    gui_hint: 15,0
+    label1: '"Quad Demodded"'
+    label10: Signal 10
+    label2: '"Sliced"'
+    label3: Signal 3
+    label4: Signal 4
+    label5: Signal 5
+    label6: Signal 6
+    label7: Signal 7
+    label8: Signal 8
+    label9: Signal 9
+    legend: 'True'
+    marker1: '-1'
+    marker10: '-1'
+    marker2: '0'
+    marker3: '-1'
+    marker4: '-1'
+    marker5: '-1'
+    marker6: '-1'
+    marker7: '-1'
+    marker8: '-1'
+    marker9: '-1'
+    name: '"Quad Demodded"'
+    nconnections: '1'
+    size: int( 10*plot_N_bits/ decimation)
+    srate: int(samp_rate / decimation)
+    stemplot: 'False'
+    style1: '1'
+    style10: '1'
+    style2: '1'
+    style3: '1'
+    style4: '1'
+    style5: '1'
+    style6: '1'
+    style7: '1'
+    style8: '1'
+    style9: '1'
+    tr_chan: '0'
+    tr_delay: '0'
+    tr_level: '0.0'
+    tr_mode: qtgui.TRIG_MODE_FREE
+    tr_slope: qtgui.TRIG_SLOPE_POS
+    tr_tag: '""'
+    type: float
+    update_time: '0.10'
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    ylabel: Amplitude
+    ymax: '2'
+    ymin: '-2'
+    yunit: '""'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1272, 272.0]
+    rotation: 0
+    state: enabled
+- name: qtgui_waterfall_sink_x_0
+  id: qtgui_waterfall_sink_x
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    axislabels: 'True'
+    bw: samp_rate / decimation
+    color1: '0'
+    color10: '0'
+    color2: '0'
+    color3: '0'
+    color4: '0'
+    color5: '0'
+    color6: '0'
+    color7: '0'
+    color8: '0'
+    color9: '0'
+    comment: ''
+    fc: '0'
+    fftsize: '2048'
+    freqhalf: 'True'
+    grid: 'False'
+    gui_hint: ''
+    int_max: '10'
+    int_min: '-140'
+    label1: ''
+    label10: ''
+    label2: ''
+    label3: ''
+    label4: ''
+    label5: ''
+    label6: ''
+    label7: ''
+    label8: ''
+    label9: ''
+    legend: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: '""'
+    nconnections: '1'
+    showports: 'False'
+    type: complex
+    update_time: '0.10'
+    wintype: window.WIN_BLACKMAN_hARRIS
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [896, 16.0]
+    rotation: 0
+    state: enabled
+- name: single_pole_iir_filter_xx_0
+  id: single_pole_iir_filter_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha: 160E-6
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [736, 312.0]
+    rotation: 0
+    state: enabled
+- name: virtual_sink_0
+  id: virtual_sink
+  parameters:
+    alias: ''
+    comment: ''
+    stream_id: ''
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1480, 112.0]
+    rotation: 0
+    state: enabled
+- name: virtual_source_0
+  id: virtual_source
+  parameters:
+    alias: ''
+    comment: ''
+    stream_id: ''
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [80, 520.0]
+    rotation: 0
+    state: enabled
+
+connections:
+- [analog_quadrature_demod_cf_0, '0', blocks_sub_xx_0, '0']
+- [analog_quadrature_demod_cf_0, '0', single_pole_iir_filter_xx_0, '0']
+- [analog_simple_squelch_cc_0, '0', low_pass_filter_0_0, '0']
+- [blocks_file_source_0, '0', blocks_throttle2_0, '0']
+- [blocks_sub_xx_0, '0', digital_symbol_sync_xx_0, '0']
+- [blocks_sub_xx_0, '0', qtgui_time_sink_x_1_0, '0']
+- [blocks_throttle2_0, '0', analog_simple_squelch_cc_0, '0']
+- [blocks_uchar_to_float_0_0_0, '0', qtgui_time_sink_x_1, '1']
+- [digital_binary_slicer_fb_0, '0', digital_correlate_access_code_tag_xx_0, '0']
+- [digital_correlate_access_code_tag_xx_0, '0', epy_block_0, '0']
+- [digital_symbol_sync_xx_0, '0', virtual_sink_0, '0']
+- [epy_block_0, '0', epy_block_1, '0']
+- [epy_block_1, '0', blocks_uchar_to_float_0_0_0, '0']
+- [ieee802_15_4_packet_sink_0, out, blocks_message_debug_0, print_pdu]
+- [low_pass_filter_0_0, '0', analog_quadrature_demod_cf_0, '0']
+- [low_pass_filter_0_0, '0', qtgui_waterfall_sink_x_0, '0']
+- [single_pole_iir_filter_xx_0, '0', blocks_sub_xx_0, '1']
+- [virtual_source_0, '0', digital_binary_slicer_fb_0, '0']
+- [virtual_source_0, '0', ieee802_15_4_packet_sink_0, '0']
+- [virtual_source_0, '0', qtgui_time_sink_x_1, '0']
+
+metadata:
+  file_format: 1
+  grc_version: v3.11.0.0git-843-g6b25c171
