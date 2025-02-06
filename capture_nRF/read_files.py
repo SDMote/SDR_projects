@@ -17,6 +17,8 @@ files = [
     "802154", # 9
     "BLE_whitening", # 10
     "802154_capture2", # 11
+    "802154_short_includeCRC", # 12
+    "802154_short_excludeCRC", # 13
 ]
 
 # Parse command-line arguments

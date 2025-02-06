@@ -21,6 +21,8 @@ files = ["BLE_802154_0dB_0dB", # 0
          "802154", # 9
          "BLE_whitening", # 10
          "802154_capture2", # 11
+         "802154_short_includeCRC", # 12
+         "802154_short_excludeCRC", # 13
 ]
 
 # sliced_data.tofile(f"data/{files[11]}.dat")

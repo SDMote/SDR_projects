@@ -72,7 +72,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.tuning_LPF_cutoff_kHz = tuning_LPF_cutoff_kHz = 1000
         self.samples_per_bit = samples_per_bit = 10
         self.samp_rate = samp_rate = int(10e6)
-        self.plot_N_bits = plot_N_bits = 1500
+        self.plot_N = plot_N = 15000
         self.fsk_deviation_hz = fsk_deviation_hz = int(250e3)
         self.decimation = decimation = 4
 
@@ -123,7 +123,7 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
 
         self.top_layout.addWidget(self._qtgui_waterfall_sink_x_0_win)
         self.qtgui_time_sink_x_1 = qtgui.time_sink_f(
-            int(plot_N_bits), #size
+            (int( plot_N/ samples_per_bit)), #size
             int(samp_rate / samples_per_bit), #samp_rate
             "Synced and downsampled", #name
             2, #number of inputs
@@ -259,11 +259,11 @@ class BLE_packet_example(gr.top_block, Qt.QWidget):
         self.qtgui_time_sink_x_1.set_samp_rate(int(self.samp_rate / self.samples_per_bit))
         self.qtgui_waterfall_sink_x_0.set_frequency_range(0, (self.samp_rate / self.decimation))
 
-    def get_plot_N_bits(self):
-        return self.plot_N_bits
+    def get_plot_N(self):
+        return self.plot_N
 
-    def set_plot_N_bits(self, plot_N_bits):
-        self.plot_N_bits = plot_N_bits
+    def set_plot_N(self, plot_N):
+        self.plot_N = plot_N
 
     def get_fsk_deviation_hz(self):
         return self.fsk_deviation_hz

@@ -57,11 +57,11 @@ blocks:
     coordinate: [440, 16.0]
     rotation: 0
     state: enabled
-- name: plot_N_bits
+- name: plot_N
   id: variable
   parameters:
     comment: ''
-    value: '1500'
+    value: '15000'
   states:
     bus_sink: false
     bus_source: false
@@ -568,7 +568,7 @@ blocks:
     marker9: '-1'
     name: '"Synced and downsampled"'
     nconnections: '2'
-    size: int(plot_N_bits)
+    size: int( plot_N/ samples_per_bit)
     srate: int(samp_rate / samples_per_bit)
     stemplot: 'False'
     style1: '1'
@@ -665,7 +665,7 @@ blocks:
     marker9: '-1'
     name: '"Quad Demodded"'
     nconnections: '1'
-    size: int( 10*plot_N_bits/ decimation)
+    size: int( plot_N/ decimation)
     srate: int(samp_rate / decimation)
     stemplot: 'False'
     style1: '1'

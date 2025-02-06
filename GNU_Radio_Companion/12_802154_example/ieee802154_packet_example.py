@@ -74,9 +74,9 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
         self.tuning_LPF_cutoff_kHz = tuning_LPF_cutoff_kHz = 2000
         self.samples_per_chip = samples_per_chip = 5
         self.samp_rate = samp_rate = int(10e6)
-        self.plot_N_bits = plot_N_bits = 5000
+        self.plot_N = plot_N = 10000
         self.fsk_deviation_hz = fsk_deviation_hz = int(500e3)
-        self.decimation = decimation = 1
+        self.decimation = decimation = 3
 
         ##################################################
         # Blocks
@@ -126,7 +126,7 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
 
         self.top_layout.addWidget(self._qtgui_waterfall_sink_x_0_win)
         self.qtgui_time_sink_x_1_0 = qtgui.time_sink_f(
-            (int( 10*plot_N_bits/ decimation)), #size
+            (int( plot_N/ decimation)), #size
             int(samp_rate / decimation), #samp_rate
             "Quad Demodded", #name
             1, #number of inputs
@@ -178,7 +178,7 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
         for c in range(0, 1):
             self.top_grid_layout.setColumnStretch(c, 1)
         self.qtgui_time_sink_x_1 = qtgui.time_sink_f(
-            (int(2*plot_N_bits)), #size
+            (int( plot_N/ samples_per_chip)), #size
             int(samp_rate / samples_per_chip), #samp_rate
             "Synced and downsampled", #name
             2, #number of inputs
@@ -256,7 +256,7 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
         self.blocks_throttle2_0 = blocks.throttle( gr.sizeof_gr_complex*1, (samp_rate/400), True, 0 if "auto" == "auto" else max( int(float(0.1) * (samp_rate/400)) if "auto" == "time" else int(0.1), 1) )
         self.blocks_sub_xx_0 = blocks.sub_ff(1)
         self.blocks_message_debug_0 = blocks.message_debug(True, gr.log_levels.info)
-        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/diego/Documents/SDR_projects/capture_nRF/data/802154_capture2.dat', True, 0, 0)
+        self.blocks_file_source_0 = blocks.file_source(gr.sizeof_gr_complex*1, '/home/diego/Documents/SDR_projects/capture_nRF/data/802154_short_includeCRC.dat', True, 0, 0)
         self.blocks_file_source_0.set_begin_tag(pmt.PMT_NIL)
         self.analog_simple_squelch_cc_0 = analog.simple_squelch_cc((-50), 1)
         self.analog_quadrature_demod_cf_0 = analog.quadrature_demod_cf(((samp_rate / decimation)/(2*math.pi*fsk_deviation_hz)))
@@ -265,7 +265,7 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
         ##################################################
         # Connections
         ##################################################
-        self.msg_connect((self.ieee802_15_4_packet_sink_0, 'out'), (self.blocks_message_debug_0, 'print_pdu'))
+        self.msg_connect((self.ieee802_15_4_packet_sink_0, 'out'), (self.blocks_message_debug_0, 'print'))
         self.connect((self.analog_quadrature_demod_cf_0, 0), (self.blocks_sub_xx_0, 0))
         self.connect((self.analog_quadrature_demod_cf_0, 0), (self.single_pole_iir_filter_xx_0, 0))
         self.connect((self.analog_simple_squelch_cc_0, 0), (self.low_pass_filter_0_0, 0))
@@ -318,11 +318,11 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
         self.qtgui_time_sink_x_1_0.set_samp_rate(int(self.samp_rate / self.decimation))
         self.qtgui_waterfall_sink_x_0.set_frequency_range(0, (self.samp_rate / self.decimation))
 
-    def get_plot_N_bits(self):
-        return self.plot_N_bits
+    def get_plot_N(self):
+        return self.plot_N
 
-    def set_plot_N_bits(self, plot_N_bits):
-        self.plot_N_bits = plot_N_bits
+    def set_plot_N(self, plot_N):
+        self.plot_N = plot_N
 
     def get_fsk_deviation_hz(self):
         return self.fsk_deviation_hz
