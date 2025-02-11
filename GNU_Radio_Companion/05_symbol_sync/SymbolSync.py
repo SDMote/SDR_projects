@@ -497,7 +497,7 @@ class SymbolSync(gr.top_block, Qt.QWidget):
             None
         )
         self.qtgui_eye_sink_x_0_0_0.set_update_time(0.10)
-        self.qtgui_eye_sink_x_0_0_0.set_samp_per_symbol(sps)
+        self.qtgui_eye_sink_x_0_0_0.set_samp_per_symbol(1)
         self.qtgui_eye_sink_x_0_0_0.set_y_axis(-2, 2)
 
         self.qtgui_eye_sink_x_0_0_0.set_y_label('Amplitude', "")
@@ -551,7 +551,7 @@ class SymbolSync(gr.top_block, Qt.QWidget):
             None
         )
         self.qtgui_eye_sink_x_0_0.set_update_time(0.10)
-        self.qtgui_eye_sink_x_0_0.set_samp_per_symbol(sps)
+        self.qtgui_eye_sink_x_0_0.set_samp_per_symbol(1)
         self.qtgui_eye_sink_x_0_0.set_y_axis(-2, 2)
 
         self.qtgui_eye_sink_x_0_0.set_y_label('Amplitude', "")
@@ -796,9 +796,7 @@ class SymbolSync(gr.top_block, Qt.QWidget):
         self.digital_symbol_sync_xx_0.set_sps(self.sps)
         self.qtgui_eye_sink_x_0.set_samp_per_symbol(self.sps)
         self.qtgui_eye_sink_x_0_0.set_samp_rate(self.samp_rate/self.sps*self.output_sps)
-        self.qtgui_eye_sink_x_0_0.set_samp_per_symbol(self.sps)
         self.qtgui_eye_sink_x_0_0_0.set_samp_rate(self.samp_rate/self.sps*self.output_sps)
-        self.qtgui_eye_sink_x_0_0_0.set_samp_per_symbol(self.sps)
         self.qtgui_time_sink_x_0_0_0_0_0.set_samp_rate(self.samp_rate/self.sps*self.output_sps)
         self.qtgui_time_sink_x_0_0_0_0_0_0.set_samp_rate(self.samp_rate/self.sps*self.output_sps)
         self.root_raised_cosine_filter_0.set_taps(firdes.root_raised_cosine(1, self.samp_rate, (self.samp_rate/self.sps), self.alpha, (11*self.sps)))
