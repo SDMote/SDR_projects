@@ -150,7 +150,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: int(10e6)
+    value: int(4e6)
   states:
     bus_sink: false
     bus_source: false
@@ -162,7 +162,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: int(10)
+    value: int(4)
   states:
     bus_sink: false
     bus_source: false
@@ -390,7 +390,7 @@ blocks:
     maximum: '0.1'
     maxoutbuf: '0'
     minoutbuf: '0'
-    samples_per_second: samp_rate/400
+    samples_per_second: samp_rate/40
     type: complex
     vlen: '1'
   states:
@@ -472,14 +472,14 @@ blocks:
     rolloff: '1'
     samps_per_sym: sps
     type: cc
-    w: 2*math.pi/sps/50
+    w: 2*math.pi/sps/500
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [568, 480.0]
+    coordinate: [568, 456.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: digital_symbol_sync_xx_1
   id: digital_symbol_sync_xx
   parameters:
@@ -489,7 +489,7 @@ blocks:
     constellation: digital.constellation_bpsk().base()
     damping: '1.0'
     loop_bw: '0.045'
-    max_dev: '0.1'
+    max_dev: '1.5'
     maxoutbuf: '0'
     minoutbuf: '0'
     nfilters: '128'
@@ -529,7 +529,7 @@ blocks:
     bus_structure: null
     coordinate: [160, 680.0]
     rotation: 0
-    state: enabled
+    state: bypassed
 - name: import_0
   id: import
   parameters:
@@ -1036,7 +1036,7 @@ blocks:
     bus_structure: null
     coordinate: [1296, 352.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: qtgui_time_sink_x_0_0_0_0_0
   id: qtgui_time_sink_x
   parameters:
@@ -1327,7 +1327,7 @@ blocks:
     bus_structure: null
     coordinate: [920, 512.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: qtgui_waterfall_sink_x_0
   id: qtgui_waterfall_sink_x
   parameters:
@@ -1449,7 +1449,7 @@ blocks:
     bus_structure: null
     coordinate: [1136, 456.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: qtgui_waterfall_sink_x_0_0_0
   id: qtgui_waterfall_sink_x
   parameters:
@@ -1509,6 +1509,26 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [1344, 808.0]
+    rotation: 0
+    state: enabled
+- name: rational_resampler_xxx_0
+  id: rational_resampler_xxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    decim: '5'
+    fbw: '0'
+    interp: '2'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    taps: '[]'
+    type: ccc
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [376, 96.0]
     rotation: 0
     state: enabled
 - name: single_pole_iir_filter_xx_0
@@ -1585,6 +1605,7 @@ blocks:
 connections:
 - [analog_agc_xx_1_0, '0', blocks_multiply_xx_0_0_0, '0']
 - [analog_agc_xx_1_0, '0', digital_fll_band_edge_cc_0_0, '0']
+- [analog_agc_xx_1_0, '0', virtual_sink_1, '0']
 - [analog_quadrature_demod_cf_0, '0', single_pole_iir_filter_xx_0, '0']
 - [analog_sig_source_x_0_0, '0', blocks_multiply_xx_0_0, '1']
 - [analog_simple_squelch_cc_0, '0', low_pass_filter_0_0, '0']
@@ -1599,7 +1620,7 @@ connections:
 - [blocks_multiply_xx_0_0, '0', qtgui_waterfall_sink_x_0, '0']
 - [blocks_multiply_xx_0_0_0, '0', qtgui_freq_sink_x_0_0_0, '2']
 - [blocks_multiply_xx_0_0_0, '0', qtgui_waterfall_sink_x_0_0_0, '0']
-- [blocks_throttle2_0, '0', analog_simple_squelch_cc_0, '0']
+- [blocks_throttle2_0, '0', rational_resampler_xxx_0, '0']
 - [blocks_vco_c_0, '0', blocks_multiply_xx_0_0_0, '1']
 - [digital_costas_loop_cc_0, '0', qtgui_const_sink_x_0_0, '1']
 - [digital_costas_loop_cc_0, '0', qtgui_eye_sink_x_0_0_0, '0']
@@ -1615,6 +1636,7 @@ connections:
 - [digital_symbol_sync_xx_1, '0', qtgui_const_sink_x_0_0_0, '0']
 - [fir_filter_xxx_0, '0', digital_symbol_sync_xx_1, '0']
 - [low_pass_filter_0_0, '0', blocks_multiply_xx_0_0, '0']
+- [rational_resampler_xxx_0, '0', analog_simple_squelch_cc_0, '0']
 - [single_pole_iir_filter_xx_0, '0', blocks_vco_c_0, '0']
 - [virtual_source_0, '0', analog_agc_xx_1_0, '0']
 - [virtual_source_0_0, '0', fir_filter_xxx_0, '0']
