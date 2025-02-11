@@ -88,20 +88,7 @@ constellation = comm.ConstellationDiagram( ...
     'ReferenceConstellation',5*qammod(0:3, 4), ...
     'Name','Received QPSK-Equivalent Signal');
 constellation.Position = [constellation.Position(1:2) 300 300];
-constellation(filteredQPSK);
-
-%% plot squared FFT
-% Square the signal and compute its FFT
-Xfft = fftshift(fft(filteredQPSK_delayed.^2));
-
-% Plot FFT magnitude
-figure;
-plot(abs(Xfft));
-xlabel('Frequency Bins');
-ylabel('Magnitude');
-title('FFT Magnitude of Squared Signal');
-grid on;
-
+constellation(filteredQPSK_delayed);
 
 
 %% Coarse frequency compensation (replacable by FLL-Band edge)
@@ -121,13 +108,14 @@ coarseFrequencyCompensator = comm.CoarseFrequencyCompensator( ...
     'FrequencyResolution',1e3);
 [coarseCompensatedOQPSK, coarseFrequencyOffset] = ...
     coarseFrequencyCompensator(filteredOQPSK);
+% DOES NOT USE DELAYED VERSION!!!!!!!!!
 
 % print estimated offset
 fprintf('Estimated frequency offset = %.3f kHz\n', ...
     coarseFrequencyOffset/1000);
 
 % Plot QPSK-equivalent coarsely compensated signal
-% Again, black magic made with black magic boxes in matlab, but basically a IQ plot with a phase correction
+% NOW THAT THE FREQUENCY IS COMPENSATED, ALIGN TO PLOT (DELAY Q HALF A SYMBOL)
 coarseCompensatedQPSK = helperAlignIQ(coarseCompensatedOQPSK, spc/decimationFactor);
 release(constellation);
 constellation.Name = ...
