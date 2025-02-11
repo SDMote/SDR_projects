@@ -62,7 +62,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1680, 176.0]
+    coordinate: [1440, 32.0]
     rotation: 0
     state: enabled
 - name: decimation
@@ -86,21 +86,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1688, 272.0]
+    coordinate: [1696, 112.0]
     rotation: 0
     state: enabled
-- name: nfilts
-  id: variable
-  parameters:
-    comment: ''
-    value: '32'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [40, 1368.0]
-    rotation: 0
-    state: disabled
 - name: offset
   id: variable_qtgui_range
   parameters:
@@ -113,7 +101,7 @@ blocks:
     start: -500e3
     step: 1e3
     stop: 500e3
-    value: '0'
+    value: '-20000'
     widget: counter_slider
   states:
     bus_sink: false
@@ -122,18 +110,6 @@ blocks:
     coordinate: [232, 304.0]
     rotation: 0
     state: enabled
-- name: output_sps
-  id: variable
-  parameters:
-    comment: ''
-    value: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [256, 1640.0]
-    rotation: 0
-    state: disabled
 - name: plot_N
   id: variable
   parameters:
@@ -143,7 +119,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [224, 88.0]
+    coordinate: [1712, 192.0]
     rotation: 0
     state: enabled
 - name: samp_rate
@@ -228,7 +204,7 @@ blocks:
     bus_structure: null
     coordinate: [1016, 680.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: analog_sig_source_x_0_0
   id: analog_sig_source_x
   parameters:
@@ -378,7 +354,7 @@ blocks:
     bus_structure: null
     coordinate: [1104, 784.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: blocks_throttle2_0
   id: blocks_throttle2
   parameters:
@@ -416,24 +392,6 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [1480, 656.0]
-    rotation: 0
-    state: enabled
-- name: digital_costas_loop_cc_0
-  id: digital_costas_loop_cc
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    order: constellation.arity()
-    use_snr: 'False'
-    w: 2*math.pi/100
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1024, 1248.0]
     rotation: 0
     state: disabled
 - name: digital_costas_loop_cc_0_0
@@ -488,14 +446,15 @@ blocks:
     comment: ''
     constellation: digital.constellation_bpsk().base()
     damping: '1.0'
-    loop_bw: '0.045'
-    max_dev: '1.5'
+    loop_bw: 0.045/2
+    max_dev: '0.1'
     maxoutbuf: '0'
     minoutbuf: '0'
-    nfilters: '128'
+    nfilters: '64'
     osps: '1'
-    pfb_mf_taps: '[]'
-    resamp_type: digital.IR_MMSE_8TAP
+    pfb_mf_taps: np.sin(np.linspace(0, np.pi, sps + 1)) / np.sum(np.sin(np.linspace(0,
+      np.pi, sps + 1)))
+    resamp_type: digital.IR_PFB_NO_MF
     sps: sps
     ted_gain: '1.0'
     ted_type: digital.TED_GARDNER
@@ -521,7 +480,8 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_delay: '0'
-    taps: np.sin(np.linspace(0, np.pi, sps + 1))
+    taps: np.sin(np.linspace(0, np.pi, sps + 1)) / np.sum(np.sin(np.linspace(0, np.pi,
+      sps + 1)))
     type: ccc
   states:
     bus_sink: false
@@ -540,7 +500,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1688, 112.0]
+    coordinate: [1672, 40.0]
     rotation: 0
     state: enabled
 - name: import_0_0
@@ -553,7 +513,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1792, 112.0]
+    coordinate: [1776, 40.0]
     rotation: 0
     state: enabled
 - name: low_pass_filter_0_0
@@ -580,98 +540,6 @@ blocks:
     coordinate: [696, 176.0]
     rotation: 0
     state: enabled
-- name: qtgui_const_sink_x_0_0
-  id: qtgui_const_sink_x
-  parameters:
-    affinity: ''
-    alias: ''
-    alpha1: '1.0'
-    alpha10: '1.0'
-    alpha2: '1.0'
-    alpha3: '1.0'
-    alpha4: '1.0'
-    alpha5: '1.0'
-    alpha6: '1.0'
-    alpha7: '1.0'
-    alpha8: '1.0'
-    alpha9: '1.0'
-    autoscale: 'False'
-    axislabels: 'True'
-    color1: '"blue"'
-    color10: '"red"'
-    color2: '"red"'
-    color3: '"red"'
-    color4: '"red"'
-    color5: '"red"'
-    color6: '"red"'
-    color7: '"red"'
-    color8: '"red"'
-    color9: '"red"'
-    comment: makes most sense if "Output Samples/Symbol" is 1
-    grid: 'False'
-    gui_hint: 17,0
-    label1: after Symbol Sync
-    label10: ''
-    label2: after Costas
-    label3: ''
-    label4: ''
-    label5: ''
-    label6: ''
-    label7: ''
-    label8: ''
-    label9: ''
-    legend: 'True'
-    marker1: '0'
-    marker10: '0'
-    marker2: '0'
-    marker3: '0'
-    marker4: '0'
-    marker5: '0'
-    marker6: '0'
-    marker7: '0'
-    marker8: '0'
-    marker9: '0'
-    name: '""'
-    nconnections: '2'
-    size: '1024'
-    style1: '0'
-    style10: '0'
-    style2: '0'
-    style3: '0'
-    style4: '0'
-    style5: '0'
-    style6: '0'
-    style7: '0'
-    style8: '0'
-    style9: '0'
-    tr_chan: '0'
-    tr_level: '0.0'
-    tr_mode: qtgui.TRIG_MODE_FREE
-    tr_slope: qtgui.TRIG_SLOPE_POS
-    tr_tag: '""'
-    type: complex
-    update_time: '0.10'
-    width1: '1'
-    width10: '1'
-    width2: '1'
-    width3: '1'
-    width4: '1'
-    width5: '1'
-    width6: '1'
-    width7: '1'
-    width8: '1'
-    width9: '1'
-    xmax: '2'
-    xmin: '-2'
-    ymax: '2'
-    ymin: '-2'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [1400, 1304.0]
-    rotation: 0
-    state: disabled
 - name: qtgui_const_sink_x_0_0_0
   id: qtgui_const_sink_x
   parameters:
@@ -701,7 +569,7 @@ blocks:
     color9: '"red"'
     comment: makes most sense if "Output Samples/Symbol" is 1
     grid: 'False'
-    gui_hint: 17,0
+    gui_hint: 0,0
     label1: after Symbol Sync
     label10: ''
     label2: after Costas
@@ -753,8 +621,8 @@ blocks:
     width7: '1'
     width8: '1'
     width9: '1'
-    xmax: '2'
-    xmin: '-2'
+    xmax: '4'
+    xmin: '-4'
     ymax: '2'
     ymin: '-2'
   states:
@@ -764,7 +632,7 @@ blocks:
     coordinate: [1224, 960.0]
     rotation: 0
     state: enabled
-- name: qtgui_eye_sink_x_0_0
+- name: qtgui_eye_sink_x_0_0_0_0
   id: qtgui_eye_sink_x
   parameters:
     affinity: ''
@@ -795,103 +663,7 @@ blocks:
     ctrlpanel: 'False'
     entags: 'True'
     grid: 'False'
-    gui_hint: 12,0
-    label1: Eye Diagram for Receive Symbol Sync Re
-    label10: Signal 10
-    label2: Eye Diagram for Receive Symbol Sync  Im
-    label3: Signal 3
-    label4: Signal 4
-    label5: Signal 5
-    label6: Signal 6
-    label7: Signal 7
-    label8: Signal 8
-    label9: Signal 9
-    legend: 'True'
-    marker1: '0'
-    marker10: '-1'
-    marker2: '0'
-    marker3: '-1'
-    marker4: '-1'
-    marker5: '-1'
-    marker6: '-1'
-    marker7: '-1'
-    marker8: '-1'
-    marker9: '-1'
-    nconnections: '1'
-    samp_per_symbol: sps
-    size: '1024'
-    srate: samp_rate/sps*output_sps
-    style1: '1'
-    style10: '1'
-    style2: '1'
-    style3: '1'
-    style4: '1'
-    style5: '1'
-    style6: '1'
-    style7: '1'
-    style8: '1'
-    style9: '1'
-    tr_chan: '0'
-    tr_delay: '0'
-    tr_level: '0.0'
-    tr_mode: qtgui.TRIG_MODE_FREE
-    tr_slope: qtgui.TRIG_SLOPE_POS
-    tr_tag: '""'
-    type: complex
-    update_time: '0.10'
-    width1: '1'
-    width10: '1'
-    width2: '1'
-    width3: '1'
-    width4: '1'
-    width5: '1'
-    width6: '1'
-    width7: '1'
-    width8: '1'
-    width9: '1'
-    ylabel: Amplitude
-    ymax: '2'
-    ymin: '-2'
-    yunit: '""'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [848, 1520.0]
-    rotation: 0
-    state: disabled
-- name: qtgui_eye_sink_x_0_0_0
-  id: qtgui_eye_sink_x
-  parameters:
-    affinity: ''
-    alias: ''
-    alpha1: '1.0'
-    alpha10: '1.0'
-    alpha2: '1.0'
-    alpha3: '1.0'
-    alpha4: '1.0'
-    alpha5: '1.0'
-    alpha6: '1.0'
-    alpha7: '1.0'
-    alpha8: '1.0'
-    alpha9: '1.0'
-    autoscale: 'False'
-    axislabels: 'True'
-    color1: blue
-    color10: blue
-    color2: blue
-    color3: blue
-    color4: blue
-    color5: blue
-    color6: blue
-    color7: blue
-    color8: blue
-    color9: blue
-    comment: ''
-    ctrlpanel: 'False'
-    entags: 'True'
-    grid: 'False'
-    gui_hint: 16,0
+    gui_hint: 1,0
     label1: Eye Diagram after Costas Re
     label10: Signal 10
     label2: Eye Diagram after Costas  Im
@@ -914,9 +686,9 @@ blocks:
     marker8: '-1'
     marker9: '-1'
     nconnections: '1'
-    samp_per_symbol: sps
+    samp_per_symbol: '1'
     size: '1024'
-    srate: samp_rate/sps*output_sps
+    srate: samp_rate/sps
     style1: '1'
     style10: '1'
     style2: '1'
@@ -953,9 +725,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1400, 1200.0]
+    coordinate: [1552, 904.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: qtgui_freq_sink_x_0_0_0
   id: qtgui_freq_sink_x
   parameters:
@@ -1037,7 +809,7 @@ blocks:
     coordinate: [1296, 352.0]
     rotation: 0
     state: disabled
-- name: qtgui_time_sink_x_0_0_0_0_0
+- name: qtgui_time_sink_x_0_0_0_0_0_0_0
   id: qtgui_time_sink_x
   parameters:
     affinity: ''
@@ -1068,104 +840,7 @@ blocks:
     ctrlpanel: 'False'
     entags: 'True'
     grid: 'False'
-    gui_hint: 11,0
-    label1: Receive Symbol Sync Re
-    label10: Signal 10
-    label2: Receive Symbol Sync Im
-    label3: Signal 3
-    label4: Signal 4
-    label5: Signal 5
-    label6: Signal 6
-    label7: Signal 7
-    label8: Signal 8
-    label9: Signal 9
-    legend: 'True'
-    marker1: '0'
-    marker10: '-1'
-    marker2: '0'
-    marker3: '-1'
-    marker4: '-1'
-    marker5: '-1'
-    marker6: '-1'
-    marker7: '-1'
-    marker8: '-1'
-    marker9: '-1'
-    name: '""'
-    nconnections: '1'
-    size: 10*sps
-    srate: samp_rate/sps*output_sps
-    stemplot: 'False'
-    style1: '1'
-    style10: '1'
-    style2: '1'
-    style3: '1'
-    style4: '1'
-    style5: '1'
-    style6: '1'
-    style7: '1'
-    style8: '1'
-    style9: '1'
-    tr_chan: '0'
-    tr_delay: '0'
-    tr_level: '0.0'
-    tr_mode: qtgui.TRIG_MODE_AUTO
-    tr_slope: qtgui.TRIG_SLOPE_POS
-    tr_tag: '""'
-    type: complex
-    update_time: '0.10'
-    width1: '1'
-    width10: '1'
-    width2: '1'
-    width3: '1'
-    width4: '1'
-    width5: '1'
-    width6: '1'
-    width7: '1'
-    width8: '1'
-    width9: '1'
-    ylabel: Amplitude
-    ymax: '2'
-    ymin: '-2'
-    yunit: '""'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [848, 1424.0]
-    rotation: 0
-    state: disabled
-- name: qtgui_time_sink_x_0_0_0_0_0_0
-  id: qtgui_time_sink_x
-  parameters:
-    affinity: ''
-    alias: ''
-    alpha1: '1.0'
-    alpha10: '1.0'
-    alpha2: '1.0'
-    alpha3: '1.0'
-    alpha4: '1.0'
-    alpha5: '1.0'
-    alpha6: '1.0'
-    alpha7: '1.0'
-    alpha8: '1.0'
-    alpha9: '1.0'
-    autoscale: 'False'
-    axislabels: 'True'
-    color1: blue
-    color10: dark blue
-    color2: red
-    color3: green
-    color4: black
-    color5: cyan
-    color6: magenta
-    color7: yellow
-    color8: dark red
-    color9: dark green
-    comment: ''
-    ctrlpanel: 'False'
-    entags: 'True'
-    grid: 'False'
-    gui_hint: 18,0
+    gui_hint: 1,1
     label1: Receive after Costas Re
     label10: Signal 10
     label2: Receive after Costas Im
@@ -1189,8 +864,8 @@ blocks:
     marker9: '-1'
     name: '""'
     nconnections: '1'
-    size: '100'
-    srate: samp_rate/sps*output_sps
+    size: int(plot_N * 2 / 5 /4)
+    srate: samp_rate/sps
     stemplot: 'False'
     style1: '1'
     style10: '1'
@@ -1228,9 +903,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1408, 1408.0]
+    coordinate: [1248, 1120.0]
     rotation: 0
-    state: disabled
+    state: enabled
 - name: qtgui_time_sink_x_0_0_1
   id: qtgui_time_sink_x
   parameters:
@@ -1360,7 +1035,7 @@ blocks:
     fftsize: '2048'
     freqhalf: 'True'
     grid: 'False'
-    gui_hint: ''
+    gui_hint: 0,1
     int_max: '10'
     int_min: '-140'
     label1: ''
@@ -1510,7 +1185,7 @@ blocks:
     bus_structure: null
     coordinate: [1344, 808.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: rational_resampler_xxx_0
   id: rational_resampler_xxx
   parameters:
@@ -1548,7 +1223,7 @@ blocks:
     bus_structure: null
     coordinate: [1232, 680.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: virtual_sink_0
   id: virtual_sink
   parameters:
@@ -1622,10 +1297,9 @@ connections:
 - [blocks_multiply_xx_0_0_0, '0', qtgui_waterfall_sink_x_0_0_0, '0']
 - [blocks_throttle2_0, '0', rational_resampler_xxx_0, '0']
 - [blocks_vco_c_0, '0', blocks_multiply_xx_0_0_0, '1']
-- [digital_costas_loop_cc_0, '0', qtgui_const_sink_x_0_0, '1']
-- [digital_costas_loop_cc_0, '0', qtgui_eye_sink_x_0_0_0, '0']
-- [digital_costas_loop_cc_0, '0', qtgui_time_sink_x_0_0_0_0_0_0, '0']
 - [digital_costas_loop_cc_0_0, '0', qtgui_const_sink_x_0_0_0, '1']
+- [digital_costas_loop_cc_0_0, '0', qtgui_eye_sink_x_0_0_0_0, '0']
+- [digital_costas_loop_cc_0_0, '0', qtgui_time_sink_x_0_0_0_0_0_0_0, '0']
 - [digital_fll_band_edge_cc_0_0, '0', qtgui_freq_sink_x_0_0_0, '1']
 - [digital_fll_band_edge_cc_0_0, '0', qtgui_waterfall_sink_x_0_0, '0']
 - [digital_fll_band_edge_cc_0_0, '0', virtual_sink_1, '0']
