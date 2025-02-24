@@ -693,7 +693,7 @@ blocks:
     gui_hint: 15,0
     label1: '"Quad Demodded"'
     label10: Signal 10
-    label2: '"Sliced"'
+    label2: '"IIR Filter Output"'
     label3: Signal 3
     label4: Signal 4
     label5: Signal 5
@@ -713,7 +713,7 @@ blocks:
     marker8: '-1'
     marker9: '-1'
     name: '"Quad Demodded"'
-    nconnections: '1'
+    nconnections: '2'
     size: int( plot_N/ decimation)
     srate: int(samp_rate / decimation)
     stemplot: 'False'
@@ -880,6 +880,7 @@ connections:
 - [low_pass_filter_0_0, '0', analog_quadrature_demod_cf_0, '0']
 - [low_pass_filter_0_0, '0', qtgui_waterfall_sink_x_0, '0']
 - [single_pole_iir_filter_xx_0, '0', blocks_sub_xx_0, '1']
+- [single_pole_iir_filter_xx_0, '0', qtgui_time_sink_x_1_0, '1']
 - [virtual_source_0, '0', digital_binary_slicer_fb_0, '0']
 - [virtual_source_0, '0', ieee802_15_4_packet_sink_0, '0']
 - [virtual_source_0, '0', qtgui_time_sink_x_1, '0']

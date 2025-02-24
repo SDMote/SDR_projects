@@ -129,7 +129,7 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
             (int( plot_N/ decimation)), #size
             int(samp_rate / decimation), #samp_rate
             "Quad Demodded", #name
-            1, #number of inputs
+            2, #number of inputs
             None # parent
         )
         self.qtgui_time_sink_x_1_0.set_update_time(0.10)
@@ -146,7 +146,7 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
         self.qtgui_time_sink_x_1_0.enable_stem_plot(False)
 
 
-        labels = ["Quad Demodded", "Sliced", 'Signal 3', 'Signal 4', 'Signal 5',
+        labels = ["Quad Demodded", "IIR Filter Output", 'Signal 3', 'Signal 4', 'Signal 5',
             'Signal 6', 'Signal 7', 'Signal 8', 'Signal 9', 'Signal 10']
         widths = [1, 1, 1, 1, 1,
             1, 1, 1, 1, 1]
@@ -160,7 +160,7 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
             -1, -1, -1, -1, -1]
 
 
-        for i in range(1):
+        for i in range(2):
             if len(labels[i]) == 0:
                 self.qtgui_time_sink_x_1_0.set_line_label(i, "Data {0}".format(i))
             else:
@@ -281,6 +281,7 @@ class ieee802154_packet_example(gr.top_block, Qt.QWidget):
         self.connect((self.low_pass_filter_0_0, 0), (self.analog_quadrature_demod_cf_0, 0))
         self.connect((self.low_pass_filter_0_0, 0), (self.qtgui_waterfall_sink_x_0, 0))
         self.connect((self.single_pole_iir_filter_xx_0, 0), (self.blocks_sub_xx_0, 1))
+        self.connect((self.single_pole_iir_filter_xx_0, 0), (self.qtgui_time_sink_x_1_0, 1))
 
 
     def closeEvent(self, event):
