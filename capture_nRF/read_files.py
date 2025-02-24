@@ -18,8 +18,20 @@ files = [
     "BLE_whitening", # 10
     "802154_capture2", # 11
     "802154_short_includeCRC", # 12
-    "802154_short_excludeCRC", # 13
+    "BLE_0dBm", # 16 ------------ BLE alone -----------------------------
+    "BLE_802154_0dBm_8dBm_0MHz", # 17 --- BLE + IEEE 802.15.4 interference
+    "802154_8dBm_0MHz", # 18 ------------ IEEE 802.15.4 interference alone
+    "BLE_tone_0dBm_8dBm_0MHz", # 19 ----- BLE + tone interference
+    "tone_8dBm_0MHz_802154", # 20 ------- tone interference alone
+    "802154_BLE_0dBm", # 21 ----  IEEE 802.15.4 alone -------------------
+    "802154_BLE_0dBm_8dBm_0MHz", # 22 --- IEEE 802.15.4 + BLE interference
+    "BLE_8dBm_0MHz", # 23 --------------- BLE interference alone
+    "802154_tone_0dBm_8dBm_0MHz", # 24 -- IEEE 802.15.4 + tone interference
+    "tone_8dBm_0MHz_BLE", # 25 ---------- tone interference alone
+    "BLE_BLE_2424MHz_2426MHz" # 26 --- double BLE -----------------------
+    "802154_802154_2425MHz_2430MHz" # 27 --- double 802154 --------------
 ]
+
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(description="Process and plot FSK signal from file.")
