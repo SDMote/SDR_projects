@@ -18,7 +18,7 @@ def low_pass_filter(iq_samples, cutoff, fs, numtaps=101):
     filtered = signal.lfilter(taps, 1.0, iq_samples)
     return filtered
 
-def decimating_FIR_filter(data, decimation, gain, fs, cutoff_freq, transition_width, window="hamming"):
+def decimating_fir_filter(data, decimation, gain, fs, cutoff_freq, transition_width, window="hamming"):
     # Applies a decimating FIR low-pass filter.
     nyquist = fs / 2
     num_taps = int(4 * nyquist / transition_width)  # Rule of thumb for FIR filter length
@@ -76,25 +76,47 @@ def plot_spectrogram(ax, data, fs, fLO=0, vmin=-65):
 def quadrature_demod(iq_samples, gain=1):
     return np.diff(np.unwrap(np.angle(iq_samples))) * gain / 2
 
+def fir_filter(data, taps):
+    return np.convolve(data, taps, mode='same')
+
+def add_awgn(signal, snr_db):
+    signal_power = np.mean(np.abs(signal)**2)
+    snr_linear = 10**(snr_db / 10)  # Calculate the noise power based on the SNR (in dB)
+    noise_power = signal_power / snr_linear
+    noise = np.sqrt(noise_power) * np.random.randn(len(signal))
+    return signal + noise
 
 # Start here
 filename = "BLE_0dBm"
 fs = 10e6  # Hz
 fsk_deviation_BLE = 250e3 # Hz
 decimation = 1
+sps = 10
 
+# Open file
 iq_samples = read_iq_data(f'capture_nRF/data/{filename}.dat')
-iq_samples = decimating_FIR_filter(iq_samples,
+
+# iq_samples = add_awgn(iq_samples, snr_db=4)
+
+# Low pass filter
+iq_samples = decimating_fir_filter(iq_samples,
                                    decimation=decimation, 
                                    gain=1, 
                                    fs=fs, 
                                    cutoff_freq=1.5e6, 
                                    transition_width=1000e3, 
                                    window="hamming")
+
+# Squelch
 iq_samples = simple_squelch(iq_samples, threshold=10e-2)
+
+# Quadrature demodulation
 freq_samples = quadrature_demod(iq_samples, gain=(fs / decimation)/(2*np.pi*fsk_deviation_BLE))
 
-
+# Matched filter with instantaneous frequency
+# matched_filter_taps = np.sin(np.linspace(0, np.pi, sps + 1))
+# matched_filter_taps /= np.max(matched_filter_taps)
+# matched = fir_filter(freq_samples, matched_filter_taps)
 
 # Plot
 def create_subplots(data, fs, fLO=0):
@@ -102,7 +124,7 @@ def create_subplots(data, fs, fLO=0):
     plot_time(axes[0], [np.real(data[0]), np.imag(data[0])], fs, ["I (In-phase)", "Q (Quadrature)"], "IQ Data")
     cmesh = plot_spectrogram(axes[1], data[0], fs, fLO)
     # fig.colorbar(cmesh, ax=axes[1], label="Power/Frequency (dB/Hz)")
-    plot_time(axes[2], [np.real(data[1])], fs, ["Instantaneous Frequency"], "Instantaneous Frequency", ylims=(-1.5, 1.5))
+    plot_time(axes[2], [data[1]], fs, ["Instantaneous Frequency"], "Instantaneous Frequency", ylims=(-1.5, 1.5))
     plt.tight_layout()
     plt.show()
 
