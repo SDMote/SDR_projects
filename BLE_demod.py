@@ -3,19 +3,19 @@ import matplotlib.pyplot as plt
 from scipy import signal
 
 
-def read_iq_data(filename):
+def read_iq_data(filename: str):
     # Read interleaved float32 values and convert to complex numbers.
     raw = np.fromfile(filename, dtype=np.complex64)
     iq = raw[0::2] + 1j * raw[1::2]
     return iq
 
 
-def simple_squelch(iq_samples, threshold=0.01):
+def simple_squelch(iq_samples, threshold: float = 0.01):
     # Zero out samples that fall below the amplitude threshold.
     return np.where(np.abs(iq_samples) < threshold, 0, iq_samples)
 
 
-def low_pass_filter(iq_samples, cutoff, fs, numtaps=101):
+def low_pass_filter(iq_samples, cutoff, fs: float, numtaps: int = 101):
     # Design a FIR low-pass filter.
     taps = signal.firwin(numtaps, cutoff / (0.5 * fs))
     filtered = signal.lfilter(taps, 1.0, iq_samples)
