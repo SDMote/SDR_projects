@@ -4,33 +4,35 @@ import matplotlib.pyplot as plt
 
 
 # Define 32-chip sequences for IEEE 802.15.4 symbols
-IEEE_802154_CHIP_OCTETS = np.array([
-    [0xD9, 0xC3, 0x52, 0x2E], # 0
-    [0xED, 0x9C, 0x35, 0x22], # 1
-    [0x2E, 0xD9, 0xC3, 0x52], # 2
-    [0x22, 0xED, 0x9C, 0x35], # 3
-    [0x52, 0x2E, 0xD9, 0xC3], # 4
-    [0x35, 0x22, 0xED, 0x9C], # 5
-    [0xC3, 0x52, 0x2E, 0xD9], # 6
-    [0x9C, 0x35, 0x22, 0xED], # 7
-    [0x8C, 0x96, 0x07, 0x7B], # 8
-    [0xB8, 0xC9, 0x60, 0x77], # 9
-    [0x7B, 0x8C, 0x96, 0x07], # 10
-    [0x77, 0xB8, 0xC9, 0x60], # 11
-    [0x07, 0x7B, 0x8C, 0x96], # 12
-    [0x60, 0x77, 0xB8, 0xC9], # 13
-    [0x96, 0x07, 0x7B, 0x8C], # 14
-    [0xC9, 0x60, 0x77, 0xB8], # 15
-])
+IEEE_802154_CHIP_OCTETS = np.array(
+    [
+        [0xD9, 0xC3, 0x52, 0x2E],  # 0
+        [0xED, 0x9C, 0x35, 0x22],  # 1
+        [0x2E, 0xD9, 0xC3, 0x52],  # 2
+        [0x22, 0xED, 0x9C, 0x35],  # 3
+        [0x52, 0x2E, 0xD9, 0xC3],  # 4
+        [0x35, 0x22, 0xED, 0x9C],  # 5
+        [0xC3, 0x52, 0x2E, 0xD9],  # 6
+        [0x9C, 0x35, 0x22, 0xED],  # 7
+        [0x8C, 0x96, 0x07, 0x7B],  # 8
+        [0xB8, 0xC9, 0x60, 0x77],  # 9
+        [0x7B, 0x8C, 0x96, 0x07],  # 10
+        [0x77, 0xB8, 0xC9, 0x60],  # 11
+        [0x07, 0x7B, 0x8C, 0x96],  # 12
+        [0x60, 0x77, 0xB8, 0xC9],  # 13
+        [0x96, 0x07, 0x7B, 0x8C],  # 14
+        [0xC9, 0x60, 0x77, 0xB8],  # 15
+    ]
+)
+
 
 def bit_to_chips_mapping(frame):
     """Maps an array of bytes to an array of chip octets."""
     chips = np.array([], dtype=np.uint8)
     for byte in frame:
-        chips = np.concatenate(
-            [chips, IEEE_802154_CHIP_OCTETS[byte >> 4], IEEE_802154_CHIP_OCTETS[byte & 0xF]]
-        )
+        chips = np.concatenate([chips, IEEE_802154_CHIP_OCTETS[byte >> 4], IEEE_802154_CHIP_OCTETS[byte & 0xF]])
     return chips
+
 
 def generate_IEEE802154_packet(payload):
     """Add physical header to payload"""
@@ -43,6 +45,7 @@ def generate_IEEE802154_packet(payload):
     sfd = [0xA7]
     frame = preamble + sfd + length + payload
     return frame
+
 
 def unpack_frame_to_positive_negative(frame):
     """Maps 0 to -1."""
@@ -96,15 +99,15 @@ fig, axes = plt.subplots(2, 1, figsize=(10, 6))
 
 # Plot I_upsampled in the first subplot
 axes[0].stem(I_upsampled)
-axes[0].set_title('I_upsampled')
-axes[0].set_xlabel('Sample Index')
-axes[0].set_ylabel('Amplitude')
+axes[0].set_title("I_upsampled")
+axes[0].set_xlabel("Sample Index")
+axes[0].set_ylabel("Amplitude")
 
 # Plot I_modulated in the second subplot
 axes[1].stem(I_modulated)
-axes[1].set_title('I_modulated')
-axes[1].set_xlabel('Sample Index')
-axes[1].set_ylabel('Amplitude')
+axes[1].set_title("I_modulated")
+axes[1].set_xlabel("Sample Index")
+axes[1].set_ylabel("Amplitude")
 
 # Adjust layout to avoid overlap
 plt.tight_layout()
