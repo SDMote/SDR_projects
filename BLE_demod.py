@@ -7,8 +7,7 @@ from gnuradio import digital, blocks, gr
 
 def read_iq_data(filename: str):
     # Read interleaved float32 values and convert to complex numbers.
-    raw = np.fromfile(filename, dtype=np.complex64)
-    iq = raw[0::2] + 1j * raw[1::2]
+    iq = np.fromfile(filename, dtype=np.complex64)
     return iq
 
 
@@ -52,17 +51,24 @@ def plot_iq(ax, data, fs):
     ax.grid()
 
 
-def plot_time(ax, data_list, fs, labels, title="Time Domain Signal", ylims=None, stem=False):
+def plot_time(ax, data_list, fs, labels, title="Time Domain Signal", ylims=None, stem=False, time=True):
     # Plot in time domain
-    time = np.arange(len(data_list[0])) / fs * 1e6  # Time in µs
+    if time:
+        time_array = np.arange(len(data_list[0])) / fs * 1e6  # Time in µs
+    else:
+        time_array = np.arange(len(data_list[0]))  # Samples
     for data, label in zip(data_list, labels):
         if stem:
-            ax.stem(time, np.real(data), label=label)
+            ax.stem(time_array, np.real(data), label=label)
         else:
-            ax.plot(time, np.real(data), label=label)
-    ax.set_xlabel("Time (µs)")
+            ax.plot(time_array, np.real(data), label=label)
+
+    if time:
+        ax.set_xlabel("Time (µs)")
+    else:
+        ax.set_xlabel("Samples (-)")
     ax.set_ylabel("Amplitude")
-    ax.set_xlim(time[0], time[-1])
+    ax.set_xlim(time_array[0], time_array[-1])
     ax.set_title(title)
     ax.legend()
     ax.grid()
@@ -89,7 +95,7 @@ def plot_spectrogram(ax, data, fs, fLO=0, vmin=-65):
 
 
 def quadrature_demod(iq_samples, gain=1):
-    return np.diff(np.unwrap(np.angle(iq_samples))) * gain / 2
+    return np.diff(np.unwrap(np.angle(iq_samples))) * gain
 
 
 def fir_filter(data, taps):
@@ -104,8 +110,50 @@ def add_awgn(signal, snr_db):
     return signal + noise
 
 
+def symbol_sync(
+    input_samples,
+    sps: float,
+    TED_gain: float = 1.0,
+    loop_BW: float = 0.045,
+    damping: float = 1.0,
+    max_deviation: float = 1.5,
+    out_sps: int = 1,
+):
+    # Convert NumPy array to GNU Radio format
+    src = blocks.vector_source_f(input_samples.tolist(), False, 1, [])
+
+    # Instantiate the symbol sync block
+    symbol_sync_block = digital.symbol_sync_ff(
+        digital.TED_MOD_MUELLER_AND_MULLER,
+        sps,
+        loop_BW,
+        damping,
+        TED_gain,
+        max_deviation,
+        out_sps,
+        digital.constellation_bpsk().base(),
+        digital.IR_MMSE_8TAP,
+        128,
+        [],
+    )
+
+    # Sink to collect the output
+    sink = blocks.vector_sink_f(1, 1024)
+
+    # Connect blocks
+    tb = gr.top_block()
+    tb.connect(src, symbol_sync_block)
+    tb.connect(symbol_sync_block, sink)
+
+    # Run the processing
+    tb.run()
+
+    # Retrieve output
+    return np.array(sink.data())
+
+
 if __name__ == "__main__":
-    filename = "BLE_0dBm"
+    filename = "BLE_whitening"
     fs = 10e6  # Hz
     fsk_deviation_BLE = 250e3  # Hz
     decimation = 1
@@ -133,19 +181,22 @@ if __name__ == "__main__":
     # matched = fir_filter(freq_samples, matched_filter_taps)
 
     # Symbol synchronisation
-    synced_samples = [1, 1]
+    synced_samples = symbol_sync(freq_samples, sps=sps)
 
-    print(f"{len(synced_samples) = }")
+    print(f"{len(iq_samples) = }")
     print(f"{len(freq_samples) = }")
+    print(f"{len(synced_samples) = }")
 
     # Plot
     def create_subplots(data, fs, fLO=0):
         fig, axes = plt.subplots(4, 1, figsize=(10, 6))
-        plot_time(axes[0], [np.real(data[0]), np.imag(data[0])], fs, ["I (In-phase)", "Q (Quadrature)"], "IQ Data")
+        plot_time(
+            axes[0], [np.real(data[0]), np.imag(data[0])], fs, ["I (In-phase)", "Q (Quadrature)"], "IQ Data", time=False
+        )
         cmesh = plot_spectrogram(axes[1], data[0], fs, fLO)
         # fig.colorbar(cmesh, ax=axes[1], label="Power/Frequency (dB/Hz)")
-        plot_time(axes[2], [data[1]], fs, ["Instantaneous Frequency"], "Instantaneous Frequency", ylims=(-1.5, 1.5))
-        plot_time(axes[3], [data[2]], fs, ["Synced"], "Synced", ylims=(-1.5, 1.5), stem=True)
+        plot_time(axes[2], [data[1]], fs, ["Frequency"], "Frequency", ylims=(-1.5, 1.5), time=False)
+        plot_time(axes[3], [data[2]], fs, ["Synced"], "Synced", ylims=(-1.5, 1.5), stem=True, time=False)
         plt.tight_layout()
         plt.show()
 
