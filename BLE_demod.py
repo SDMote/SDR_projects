@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 
+from gnuradio import digital, blocks, gr
 
 
 def read_iq_data(filename: str):
@@ -51,11 +52,14 @@ def plot_iq(ax, data, fs):
     ax.grid()
 
 
-def plot_time(ax, data_list, fs, labels, title="Time Domain Signal", ylims=None):
+def plot_time(ax, data_list, fs, labels, title="Time Domain Signal", ylims=None, stem=False):
     # Plot in time domain
     time = np.arange(len(data_list[0])) / fs * 1e6  # Time in µs
     for data, label in zip(data_list, labels):
-        ax.plot(time, np.real(data), label=label)
+        if stem:
+            ax.stem(time, np.real(data), label=label)
+        else:
+            ax.plot(time, np.real(data), label=label)
     ax.set_xlabel("Time (µs)")
     ax.set_ylabel("Amplitude")
     ax.set_xlim(time[0], time[-1])
@@ -100,44 +104,49 @@ def add_awgn(signal, snr_db):
     return signal + noise
 
 
-# Start here
-filename = "BLE_0dBm"
-fs = 10e6  # Hz
-fsk_deviation_BLE = 250e3  # Hz
-decimation = 1
-sps = 10
+if __name__ == "__main__":
+    filename = "BLE_0dBm"
+    fs = 10e6  # Hz
+    fsk_deviation_BLE = 250e3  # Hz
+    decimation = 1
+    sps = 10
 
-# Open file
-iq_samples = read_iq_data(f"capture_nRF/data/{filename}.dat")
+    # Open file
+    iq_samples = read_iq_data(f"capture_nRF/data/{filename}.dat")
 
-# iq_samples = add_awgn(iq_samples, snr_db=4)
+    # iq_samples = add_awgn(iq_samples, snr_db=4)
 
-# Low pass filter
-iq_samples = decimating_fir_filter(
-    iq_samples, decimation=decimation, gain=1, fs=fs, cutoff_freq=1.5e6, transition_width=1000e3, window="hamming"
-)
+    # Low pass filter
+    iq_samples = decimating_fir_filter(
+        iq_samples, decimation=decimation, gain=1, fs=fs, cutoff_freq=1.5e6, transition_width=1000e3, window="hamming"
+    )
 
-# Squelch
-iq_samples = simple_squelch(iq_samples, threshold=10e-2)
+    # Squelch
+    iq_samples = simple_squelch(iq_samples, threshold=10e-2)
 
-# Quadrature demodulation
-freq_samples = quadrature_demod(iq_samples, gain=(fs / decimation) / (2 * np.pi * fsk_deviation_BLE))
+    # Quadrature demodulation
+    freq_samples = quadrature_demod(iq_samples, gain=(fs / decimation) / (2 * np.pi * fsk_deviation_BLE))
 
-# Matched filter with instantaneous frequency
-# matched_filter_taps = np.sin(np.linspace(0, np.pi, sps + 1))
-# matched_filter_taps /= np.max(matched_filter_taps)
-# matched = fir_filter(freq_samples, matched_filter_taps)
+    # Matched filter with instantaneous frequency
+    # matched_filter_taps = np.sin(np.linspace(0, np.pi, sps + 1))
+    # matched_filter_taps /= np.max(matched_filter_taps)
+    # matched = fir_filter(freq_samples, matched_filter_taps)
 
+    # Symbol synchronisation
+    synced_samples = [1, 1]
 
-# Plot
-def create_subplots(data, fs, fLO=0):
-    fig, axes = plt.subplots(3, 1, figsize=(10, 6))
-    plot_time(axes[0], [np.real(data[0]), np.imag(data[0])], fs, ["I (In-phase)", "Q (Quadrature)"], "IQ Data")
-    cmesh = plot_spectrogram(axes[1], data[0], fs, fLO)
-    # fig.colorbar(cmesh, ax=axes[1], label="Power/Frequency (dB/Hz)")
-    plot_time(axes[2], [data[1]], fs, ["Instantaneous Frequency"], "Instantaneous Frequency", ylims=(-1.5, 1.5))
-    plt.tight_layout()
-    plt.show()
+    print(f"{len(synced_samples) = }")
+    print(f"{len(freq_samples) = }")
 
+    # Plot
+    def create_subplots(data, fs, fLO=0):
+        fig, axes = plt.subplots(4, 1, figsize=(10, 6))
+        plot_time(axes[0], [np.real(data[0]), np.imag(data[0])], fs, ["I (In-phase)", "Q (Quadrature)"], "IQ Data")
+        cmesh = plot_spectrogram(axes[1], data[0], fs, fLO)
+        # fig.colorbar(cmesh, ax=axes[1], label="Power/Frequency (dB/Hz)")
+        plot_time(axes[2], [data[1]], fs, ["Instantaneous Frequency"], "Instantaneous Frequency", ylims=(-1.5, 1.5))
+        plot_time(axes[3], [data[2]], fs, ["Synced"], "Synced", ylims=(-1.5, 1.5), stem=True)
+        plt.tight_layout()
+        plt.show()
 
-create_subplots([iq_samples, freq_samples], fs)
+    create_subplots([iq_samples, freq_samples, synced_samples], fs)
