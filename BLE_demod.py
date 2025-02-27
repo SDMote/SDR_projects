@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import signal
+import scipy
+
 
 
 def read_iq_data(filename: str):
@@ -17,8 +18,8 @@ def simple_squelch(iq_samples, threshold: float = 0.01):
 
 def low_pass_filter(iq_samples, cutoff, fs: float, numtaps: int = 101):
     # Design a FIR low-pass filter.
-    taps = signal.firwin(numtaps, cutoff / (0.5 * fs))
-    filtered = signal.lfilter(taps, 1.0, iq_samples)
+    taps = scipy.signal.firwin(numtaps, cutoff / (0.5 * fs))
+    filtered = scipy.signal.lfilter(taps, 1.0, iq_samples)
     return filtered
 
 
@@ -29,11 +30,11 @@ def decimating_fir_filter(data, decimation, gain, fs, cutoff_freq, transition_wi
     num_taps |= 1  # Ensure odd number of taps
 
     # Design FIR filter
-    taps = signal.firwin(num_taps, cutoff=cutoff_freq / nyquist, window=window, pass_zero=True)
+    taps = scipy.signal.firwin(num_taps, cutoff=cutoff_freq / nyquist, window=window, pass_zero=True)
     taps *= gain  # Apply gain
 
     # Filter and decimate
-    filtered = signal.lfilter(taps, 1.0, data)
+    filtered = scipy.signal.lfilter(taps, 1.0, data)
     decimated = filtered[::decimation]  # Downsample
     return decimated
 
@@ -67,7 +68,7 @@ def plot_time(ax, data_list, fs, labels, title="Time Domain Signal", ylims=None)
 
 def plot_spectrogram(ax, data, fs, fLO=0, vmin=-65):
     """Plots the spectrogram on the given axis."""
-    f, t, Sxx = signal.spectrogram(
+    f, t, Sxx = scipy.signal.spectrogram(
         data, fs, window="hann", nperseg=256, noverlap=128, mode="complex", return_onesided=False
     )
     f = np.fft.fftshift(f - fs / 2) + fLO + fs // 2
