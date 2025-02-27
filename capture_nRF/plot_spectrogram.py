@@ -2,9 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import spectrogram
 
+
 def plot_spectrograms_1x4(
-    files, fs, fLO, save_fig=False, figsize=(16, 5), output_filename="spectrograms.pdf", 
-    vlines=None, vspace=0.1, hspace=0.1
+    files,
+    fs,
+    fLO,
+    save_fig=False,
+    figsize=(16, 5),
+    output_filename="spectrograms.pdf",
+    vlines=None,
+    vspace=0.1,
+    hspace=0.1,
 ):
     """
     Plots spectrograms for specific files in a 1x4 grid with rasterisation for spectrograms.
@@ -30,29 +38,29 @@ def plot_spectrograms_1x4(
     # Iterate over files and positions
     for idx, file_num in enumerate(indices):
         ax = axes[idx]
-        
+
         # Load data
         data = np.fromfile(f"data/{files[file_num]}.dat", dtype=np.complex64)
-        
+
         # Compute spectrogram
         f, t, Sxx = spectrogram(
             data,
             fs=fs,
-            window='hann',
+            window="hann",
             nperseg=256,
             noverlap=128,
-            scaling='density',
-            mode='complex',
+            scaling="density",
+            mode="complex",
             return_onesided=False,
         )
-        
+
         # FFT shift for correct frequency and time display
         f = np.fft.fftshift(f - fs / 2) + fLO + int(fs / 2)  # Recenter frequency
         Sxx = np.fft.fftshift(Sxx, axes=0)  # Shift spectrogram frequencies
         Sxx_dB = 10 * np.log10(np.abs(Sxx))  # Convert to dB
-        
+
         # Rasterise spectrogram to reduce PDF size
-        with plt.rc_context({'path.simplify': True}):
+        with plt.rc_context({"path.simplify": True}):
             cmesh = ax.pcolormesh(
                 t * 1e6,  # Time in microseconds
                 f / 1e6,  # Frequency in MHz
@@ -62,11 +70,11 @@ def plot_spectrograms_1x4(
                 vmin=-65,  # Threshold for better contrast
                 rasterized=True,  # Enable rasterisation
             )
-        
+
         # Add optional vertical read lines
         if vlines is not None:
             ax.axvline(vlines[idx], color="red", linestyle="--", label="Read line")
-        
+
         # Title
         ax.set_title(f"({chr(97 + idx)})")  # (a), (b), (c), (d)
 
@@ -77,25 +85,22 @@ def plot_spectrograms_1x4(
         ax.grid()
 
     # Add shared color bar for the spectrograms
-    fig.colorbar(
-        cmesh, ax=axes, orientation="vertical", fraction=0.02, pad=0.04, label="Power/Frequency (dB/Hz)"
-    )
+    fig.colorbar(cmesh, ax=axes, orientation="vertical", fraction=0.02, pad=0.04, label="Power/Frequency (dB/Hz)")
 
     # Save figure if requested
     if save_fig:
         plt.savefig(output_filename, dpi=300, bbox_inches="tight", format="pdf")
         print(f"Figure saved as {output_filename}")
-    
+
     # Show the figure
     # plt.show()
 
 
-
 files = [
-    "BLE_tone_0dB_0dB",    # 2
-    "BLE_tone_0dB_8dB",    # 3
-    "802154_tone_0dB_0dB", # 6
-    "802154_tone_0dB_8dB", # 7
+    "BLE_tone_0dB_0dB",  # 2
+    "BLE_tone_0dB_8dB",  # 3
+    "802154_tone_0dB_0dB",  # 6
+    "802154_tone_0dB_8dB",  # 7
     "BLE_802154_0dB_0dB",  # 0
     "BLE_802154_0dB_8dB",  # 1
     "802154_BLE_0dB_0dB",  # 4
@@ -116,5 +121,5 @@ plot_spectrograms_1x4(
     figsize=(12, 2.5),
     output_filename="spectrograms.pdf",
     vlines=None,
-    hspace=0.05  # Reduce horizontal spacing between plots
+    hspace=0.05,  # Reduce horizontal spacing between plots
 )
