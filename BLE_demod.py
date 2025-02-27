@@ -51,15 +51,15 @@ def plot_iq(ax, data, fs):
     ax.grid()
 
 
-def plot_time(ax, data_list, fs, labels, title="Time Domain Signal", ylims=None, stem=False, time=True):
+def plot_time(ax, data_list, fs, labels, title="Time Domain Signal", ylims=None, circle=False, time=True):
     # Plot in time domain
     if time:
         time_array = np.arange(len(data_list[0])) / fs * 1e6  # Time in µs
     else:
         time_array = np.arange(len(data_list[0]))  # Samples
     for data, label in zip(data_list, labels):
-        if stem:
-            ax.stem(time_array, np.real(data), label=label)
+        if circle:
+            ax.plot(time_array, np.real(data), label=label, marker="o")
         else:
             ax.plot(time_array, np.real(data), label=label)
 
@@ -122,6 +122,16 @@ def symbol_sync(
     # Convert NumPy array to GNU Radio format
     src = blocks.vector_source_f(input_samples.tolist(), False, 1, [])
 
+    # TED_MUELLER_AND_MULLER
+    # TED_MOD_MUELLER_AND_MULLER
+    # TED_ZERO_CROSSING
+    # TED_GARDNER
+    # TED_EARLY_LATE
+    # TED_DANDREA_AND_MENGALI_GEN_MSK
+    # TED_MENGALI_AND_DANDREA_GMSK
+    # TED_SIGNAL_TIMES_SLOPE_ML
+    # TED_SIGNUM_TIMES_SLOPE_ML
+
     # Instantiate the symbol sync block
     symbol_sync_block = digital.symbol_sync_ff(
         digital.TED_MOD_MUELLER_AND_MULLER,
@@ -138,7 +148,7 @@ def symbol_sync(
     )
 
     # Sink to collect the output
-    sink = blocks.vector_sink_f(1, 1024)
+    sink = blocks.vector_sink_f(1, 1024 * 4)
 
     # Connect blocks
     tb = gr.top_block()
@@ -152,8 +162,12 @@ def symbol_sync(
     return np.array(sink.data())
 
 
+def binary_slicer(data) -> int:
+    return np.where(data >= 0, 1, 0)
+
+
 if __name__ == "__main__":
-    filename = "BLE_whitening"
+    filename = "BLE_0dBm"
     fs = 10e6  # Hz
     fsk_deviation_BLE = 250e3  # Hz
     decimation = 1
@@ -182,6 +196,7 @@ if __name__ == "__main__":
 
     # Symbol synchronisation
     synced_samples = symbol_sync(freq_samples, sps=sps)
+    synced_samples = binary_slicer(synced_samples)
 
     print(f"{len(iq_samples) = }")
     print(f"{len(freq_samples) = }")
@@ -196,7 +211,7 @@ if __name__ == "__main__":
         cmesh = plot_spectrogram(axes[1], data[0], fs, fLO)
         # fig.colorbar(cmesh, ax=axes[1], label="Power/Frequency (dB/Hz)")
         plot_time(axes[2], [data[1]], fs, ["Frequency"], "Frequency", ylims=(-1.5, 1.5), time=False)
-        plot_time(axes[3], [data[2]], fs, ["Synced"], "Synced", ylims=(-1.5, 1.5), stem=True, time=False)
+        plot_time(axes[3], [data[2]], fs, ["Synced"], "Synced", ylims=(-1.5, 1.5), circle=True, time=False)
         plt.tight_layout()
         plt.show()
 
