@@ -173,6 +173,29 @@ def binary_slicer(data) -> np.int8:
     return np.where(data >= 0, 1, 0).astype(np.int8)
 
 
+def correlate_access_code(data: np.ndarray, access_code: str, threshold: int) -> np.ndarray:
+    # access_code: from LSB to MSB (as samples arrive on-air)
+    access_code = access_code.replace("_", "")
+    code_len = len(access_code)
+    access_int = int(access_code, 2)  # Convert the access code (e.g. "10110010") to an integer
+    mask = (1 << code_len) - 1  # Create a mask to keep only the last code_len bits.
+    data_reg = 0
+    positions = []
+
+    for i, bit in enumerate(data):
+        data_reg = ((data_reg << 1) | (bit & 0x1)) & mask  # Shift in the new bit
+        if i + 1 < code_len:  # Start comparing once data_reg is filled
+            continue
+
+        # Count the number of mismatched bits between data_reg and the access code
+        mismatches = bin((data_reg ^ access_int) & mask).count("1")
+        if mismatches <= threshold:
+            # Report the position immediately after (FIX, may induce bugs) the access code was found
+            positions.append(i + 1)
+
+    return np.array(positions)
+
+
 if __name__ == "__main__":
     filename = "BLE_0dBm"
     fs = 10e6  # Hz
@@ -204,10 +227,14 @@ if __name__ == "__main__":
     # Symbol synchronisation
     synced_samples = symbol_sync(freq_samples, sps=sps)
     synced_samples = binary_slicer(synced_samples)
+    preamble_detected = correlate_access_code(
+        synced_samples, "01010101_00011110_01101010_00101100_01001000_00000000", 0
+    )
 
     print(f"{len(iq_samples) = }")
     print(f"{len(freq_samples) = }")
     print(f"{len(synced_samples) = }")
+    print(f"{preamble_detected = }")
 
     # Plot
     def create_subplots(data, fs, fLO=0):
