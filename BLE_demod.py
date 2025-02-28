@@ -180,7 +180,7 @@ def correlate_access_code(data: np.ndarray, access_code: str, threshold: int) ->
     access_int = int(access_code, 2)  # Convert the access code (e.g. "10110010") to an integer
     mask = (1 << code_len) - 1  # Create a mask to keep only the last code_len bits.
     data_reg = 0
-    positions = []
+    positions = []  # Positions where the access code has been found in data
 
     for i, bit in enumerate(data):
         data_reg = ((data_reg << 1) | (bit & 0x1)) & mask  # Shift in the new bit
@@ -190,18 +190,86 @@ def correlate_access_code(data: np.ndarray, access_code: str, threshold: int) ->
         # Count the number of mismatched bits between data_reg and the access code
         mismatches = bin((data_reg ^ access_int) & mask).count("1")
         if mismatches <= threshold:
-            # Report the position immediately after (FIX, may induce bugs) the access code was found
+            # Report the position immediately after the access code was found
             positions.append(i + 1)
 
     return np.array(positions)
 
 
+def BLE_whitening(data: np.ndarray, lfsr=0x01, polynomial=0x11):
+    # Input data must be LSB first (0x7C = 124 must be formatted as 0011 1110)
+    # LFSR default value is 0x01 as it is the default value in the nRF DATAWHITEIV register
+    # The polynomial default value is 0x11 = 0b001_0001 -> x⁷ + x⁴ + 1 (x⁷ is omitted)
+    output = np.empty_like(data)  # Initialise output array
+
+    for idx, byte in enumerate(data):
+        whitened_byte = 0
+        for bit_pos in range(8):
+            # XOR the current data bit with LFSR MSB
+            lfsr_msb = (lfsr & 0x40) >> 6  # LFSR is 7-bit, so MSB is at position 6
+            data_bit = (byte >> bit_pos) & 1  # Extract current bit
+            whitened_bit = data_bit ^ lfsr_msb  # XOR
+
+            # Update the whitened byte
+            whitened_byte |= whitened_bit << (bit_pos)
+
+            # Update LFSR
+            if lfsr_msb:  # If MSB is 1 (before shifting), apply feedback
+                lfsr = (lfsr << 1) ^ polynomial  # XOR with predefined polynomial
+            else:
+                lfsr <<= 1
+            lfsr &= 0x7F  # 0x7F mask to keep ksfr within 7 bits
+
+        output[idx] = whitened_byte
+
+    return output, lfsr
+
+
+def binary_to_uint8_array(binary: np.ndarray) -> np.ndarray:
+    # Pack binary array LSB first ([1,1,1,1,0,0,0,0]) into bytes array ([0x0F])
+    # Ensure the binary array length is a multiple of 8
+    if len(binary) % 8 != 0:
+        raise ValueError(f"The binary list {len(binary)} length must be a multiple of 8.")
+
+    # Convert binary to NumPy array
+    binary_array = np.array(binary, dtype=np.uint8)
+    binary_array = binary_array.reshape(-1, 8)[:, ::-1]  #  LSB to MSB correction
+    uint8_array = np.packbits(binary_array, axis=1).flatten()
+
+    return uint8_array
+
+
+def compute_crc(data: np.ndarray, crc_init: int = 0x00FFFF, crc_poly: int = 0x00065B, crc_size: int = 3) -> np.ndarray:
+    crc_mask = (1 << (crc_size * 8)) - 1  # Mask to n-byte width (0xFFFF for crc_size = 2)
+
+    def swap_nbit(num, n):
+        num = num & crc_mask
+        reversed_bits = f"{{:0{n * 8}b}}".format(num)[::-1]
+        return int(reversed_bits, 2)
+
+    crc_init = swap_nbit(crc_init, crc_size)  # LSB -> MSB
+    crc_poly = swap_nbit(crc_poly, crc_size)
+
+    crc = crc_init
+    for byte in data:
+        crc ^= int(byte)
+        for _ in range(8):  # Process each bit
+            if crc & 0x01:  # Check the LSB
+                crc = (crc >> 1) ^ crc_poly
+            else:
+                crc >>= 1
+            crc &= crc_mask  # Ensure CRC size
+
+    return np.array([(crc >> (8 * i)) & 0xFF for i in range(crc_size)], dtype=np.uint8)
+
+
 if __name__ == "__main__":
-    filename = "BLE_0dBm"
-    fs = 10e6  # Hz
-    fsk_deviation_BLE = 250e3  # Hz
-    decimation = 1
+    filename: str = "BLE_0dBm"
+    fs: int | float = 10e6  # Hz
+    fsk_deviation_BLE: int | float = 250e3  # Hz
+    decimation: int = 1
     sps = 10
+    crc_size: int = 3  # 3 bytes CRC for BLE
 
     # Open file
     iq_samples = read_iq_data(f"capture_nRF/data/{filename}.dat")
@@ -228,13 +296,29 @@ if __name__ == "__main__":
     synced_samples = symbol_sync(freq_samples, sps=sps)
     synced_samples = binary_slicer(synced_samples)
     preamble_detected = correlate_access_code(
-        synced_samples, "01010101_00011110_01101010_00101100_01001000_00000000", 0
+        synced_samples, "01010101_00011110_01101010_00101100_01001000_00000000", threshold=0
     )
 
-    print(f"{len(iq_samples) = }")
-    print(f"{len(freq_samples) = }")
-    print(f"{len(synced_samples) = }")
-    print(f"{preamble_detected = }")
+    # Packet reading
+    for preamble in preamble_detected:
+        # Length reading for BLE
+        payload_start: int = preamble + 2 * 8
+        header = binary_to_uint8_array(synced_samples[preamble:payload_start])  # Whitened
+        header, lsfr = BLE_whitening(header)  # De-whitened, length_byte includes S0
+        payload_length: int = header[-1]  # Payload length in bytes, without CRC
+
+        # Payload reading and de-whitening
+        total_bytes: int = payload_length + crc_size
+        payload_and_crc = binary_to_uint8_array(synced_samples[payload_start : payload_start + total_bytes * 8])
+        payload_and_crc, _ = BLE_whitening(payload_and_crc, lsfr)
+
+        # CRC check
+        header_and_payload = np.concatenate((header, payload_and_crc[:-crc_size]))
+        computed_crc = compute_crc(header_and_payload)
+        crc_check = True if (computed_crc == payload_and_crc[-crc_size:]).all() else False
+
+        print(f"{header_and_payload = }")
+        print(f"{crc_check = }")
 
     # Plot
     def create_subplots(data, fs, fLO=0):
