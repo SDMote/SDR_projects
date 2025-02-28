@@ -7,7 +7,7 @@ def quadrature_demod(iq_samples: np.ndarray, gain: float | int = 1) -> np.ndarra
     return np.diff(np.unwrap(np.angle(iq_samples))) * gain
 
 
-# Hard decision slicsdf
+# Hard decision
 def binary_slicer(data: np.ndarray) -> np.ndarray:
     return np.where(data >= 0, 1, 0).astype(np.int8)
 

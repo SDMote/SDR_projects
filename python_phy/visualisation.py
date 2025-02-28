@@ -53,3 +53,17 @@ def plot_spectrogram(ax, data: np.ndarray, fs: float | int, fLO: float | int = 0
     ax.set_title(f"Spectrogram around {int(fLO/1e6)} MHz")
     ax.grid()
     return cmesh
+
+
+# Hardcoded subplots of time domain and spectrogram
+# TODO parametrise
+def create_subplots(data, fs, fLO=0):
+    fig, axes = plt.subplots(3, 1, figsize=(10, 6))
+    plot_time(
+        axes[0], [np.real(data[0]), np.imag(data[0])], fs, ["I (In-phase)", "Q (Quadrature)"], "IQ Data", time=False
+    )
+    cmesh = plot_spectrogram(axes[1], data[0], fs, fLO)
+    # fig.colorbar(cmesh, ax=axes[1], label="Power/Frequency (dB/Hz)")
+    plot_time(axes[2], [data[1]], fs, ["Hard decisions"], "Hard decisions", ylims=(-0.5, 1.5), circle=True, time=False)
+    plt.tight_layout()
+    plt.show()
