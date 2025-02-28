@@ -5,25 +5,27 @@ import scipy
 from gnuradio import digital, blocks, gr
 
 
-def read_iq_data(filename: str):
+def read_iq_data(filename: str) -> np.ndarray:
     # Read interleaved float32 values and convert to complex numbers.
     iq = np.fromfile(filename, dtype=np.complex64)
     return iq
 
 
-def simple_squelch(iq_samples, threshold: float = 0.01):
+def simple_squelch(iq_samples: np.ndarray, threshold: float = 0.01) -> np.ndarray:
     # Zero out samples that fall below the amplitude threshold.
     return np.where(np.abs(iq_samples) < threshold, 0, iq_samples)
 
 
-def low_pass_filter(iq_samples, cutoff, fs: float, numtaps: int = 101):
+def low_pass_filter(iq_samples: np.ndarray, cutoff, fs: float, numtaps: int = 101) -> np.ndarray:
     # Design a FIR low-pass filter.
     taps = scipy.signal.firwin(numtaps, cutoff / (0.5 * fs))
     filtered = scipy.signal.lfilter(taps, 1.0, iq_samples)
     return filtered
 
 
-def decimating_fir_filter(data, decimation, gain, fs, cutoff_freq, transition_width, window="hamming"):
+def decimating_fir_filter(
+    data: np.ndarray, decimation: int, gain: float, fs: int, cutoff_freq, transition_width, window="hamming"
+) -> np.ndarray:
     # Applies a decimating FIR low-pass filter.
     nyquist = fs / 2
     num_taps = int(4 * nyquist / transition_width)  # Rule of thumb for FIR filter length
@@ -39,7 +41,7 @@ def decimating_fir_filter(data, decimation, gain, fs, cutoff_freq, transition_wi
     return decimated
 
 
-def plot_iq(ax, data, fs):
+def plot_iq(ax, data: np.ndarray, fs: float | int) -> None:
     """Plots IQ components on the given axis."""
     time = np.arange(len(data)) / fs * 1e6  # Time in µs
     ax.plot(time, np.real(data), label="I (In-phase)")
@@ -51,7 +53,16 @@ def plot_iq(ax, data, fs):
     ax.grid()
 
 
-def plot_time(ax, data_list, fs, labels, title="Time Domain Signal", ylims=None, circle=False, time=True):
+def plot_time(
+    ax,
+    data_list: list,
+    fs: float | int,
+    labels,
+    title: str = "Time Domain Signal",
+    ylims=None,
+    circle: bool = False,
+    time: bool = True,
+) -> None:
     # Plot in time domain
     if time:
         time_array = np.arange(len(data_list[0])) / fs * 1e6  # Time in µs
@@ -76,7 +87,7 @@ def plot_time(ax, data_list, fs, labels, title="Time Domain Signal", ylims=None,
         ax.set_ylim(ylims)
 
 
-def plot_spectrogram(ax, data, fs, fLO=0, vmin=-65):
+def plot_spectrogram(ax, data: np.ndarray, fs: float | int, fLO: float | int = 0, vmin: float | int = -65):
     """Plots the spectrogram on the given axis."""
     f, t, Sxx = scipy.signal.spectrogram(
         data, fs, window="hann", nperseg=256, noverlap=128, mode="complex", return_onesided=False
@@ -94,11 +105,11 @@ def plot_spectrogram(ax, data, fs, fLO=0, vmin=-65):
     return cmesh
 
 
-def quadrature_demod(iq_samples, gain=1):
+def quadrature_demod(iq_samples: np.ndarray, gain: float | int = 1) -> np.ndarray:
     return np.diff(np.unwrap(np.angle(iq_samples))) * gain
 
 
-def fir_filter(data, taps):
+def fir_filter(data: np.ndarray, taps) -> np.ndarray:
     return np.convolve(data, taps, mode="same")
 
 
@@ -111,14 +122,14 @@ def add_awgn(signal, snr_db):
 
 
 def symbol_sync(
-    input_samples,
+    input_samples: np.ndarray,
     sps: float,
     TED_gain: float = 1.0,
     loop_BW: float = 0.045,
     damping: float = 1.0,
     max_deviation: float = 1.5,
     out_sps: int = 1,
-):
+) -> np.ndarray:
     # Convert NumPy array to GNU Radio format
     src = blocks.vector_source_f(input_samples.tolist(), False, 1, [])
 
@@ -147,23 +158,19 @@ def symbol_sync(
         [],
     )
 
-    # Sink to collect the output
-    sink = blocks.vector_sink_f(1, 1024 * 4)
+    sink = blocks.vector_sink_f(1, 1024 * 4)  # Sink to collect the output
 
-    # Connect blocks
+    # Connect blocks and run
     tb = gr.top_block()
     tb.connect(src, symbol_sync_block)
     tb.connect(symbol_sync_block, sink)
-
-    # Run the processing
     tb.run()
 
-    # Retrieve output
     return np.array(sink.data())
 
 
-def binary_slicer(data) -> int:
-    return np.where(data >= 0, 1, 0)
+def binary_slicer(data) -> np.int8:
+    return np.where(data >= 0, 1, 0).astype(np.int8)
 
 
 if __name__ == "__main__":
