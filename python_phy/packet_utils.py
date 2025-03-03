@@ -64,7 +64,7 @@ def ble_whitening(data: np.ndarray, lfsr=0x01, polynomial=0x11):
 
 
 # Pack a sequence of bits (array) into an array of bytes (integers)
-def binary_to_uint8_array(binary: np.ndarray) -> np.ndarray:
+def pack_binary_to_uint8(binary: np.ndarray) -> np.ndarray:
     """Pack a sequence of bits (array) into an array of bytes (integers)."""
     # Pack binary array LSB first ([1,1,1,1,0,0,0,0]) into bytes array ([0x0F])
     # Ensure the binary array length is a multiple of 8

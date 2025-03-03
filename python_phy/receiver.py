@@ -6,7 +6,7 @@ from packet_utils import (
     correlate_access_code,
     compute_crc,
     ble_whitening,
-    binary_to_uint8_array,
+    pack_binary_to_uint8,
     generate_access_code_ble,
 )
 
@@ -46,13 +46,13 @@ class ReceiverBLE:
         for preamble in preamble_detected:
             # Length reading for BLE
             payload_start: int = preamble + 2 * 8  # S0 + length byte
-            header = binary_to_uint8_array(bit_samples[preamble:payload_start])  # Whitened
+            header = pack_binary_to_uint8(bit_samples[preamble:payload_start])  # Whitened
             header, lsfr = ble_whitening(header)  # De-whitened, length_byte includes S0
             payload_length: int = header[-1]  # Payload length in bytes, without CRC
 
             # Payload reading and de-whitening
             total_bytes: int = payload_length + self.crc_size
-            payload_and_crc = binary_to_uint8_array(bit_samples[payload_start : payload_start + total_bytes * 8])
+            payload_and_crc = pack_binary_to_uint8(bit_samples[payload_start : payload_start + total_bytes * 8])
             payload_and_crc, _ = ble_whitening(payload_and_crc, lsfr)
 
             # CRC check
