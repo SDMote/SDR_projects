@@ -2,7 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from demodulation import symbol_sync, quadrature_demod, binary_slicer
-from packet_utils import correlate_access_code, compute_crc, ble_whitening, binary_to_uint8_array
+from packet_utils import (
+    correlate_access_code,
+    compute_crc,
+    ble_whitening,
+    binary_to_uint8_array,
+    generate_access_code_ble,
+)
 
 
 class ReceiverBLE:
@@ -11,7 +17,6 @@ class ReceiverBLE:
         self.sps = sps
         self.crc_size: int = 3  # 3 bytes CRC for BLE
         self.fsk_deviation_ble: int | float = 250e3  # Hz
-        self.access_code: str = "01010101_00011110_01101010_00101100_01001000_00000000"
 
     # Receives an array of complex data and returns hard decision array
     def demodulate(self, iq_samples: np.ndarray) -> np.ndarray:
@@ -30,9 +35,9 @@ class ReceiverBLE:
         return bit_samples
 
     # Receive hard decisions (bit samples) and return dictionary with detected packets
-    def process_phy_packet(self, bit_samples: np.ndarray) -> dict:
+    def process_phy_packet(self, bit_samples: np.ndarray, base_address: int) -> dict:
         # Decode detected packets found in bit_samples array
-        preamble_detected = correlate_access_code(bit_samples, self.access_code, threshold=1)
+        preamble_detected = correlate_access_code(bit_samples, generate_access_code_ble(base_address), threshold=1)
 
         # Read packets starting from the end of the preamble
         for preamble in preamble_detected:

@@ -12,6 +12,7 @@ if __name__ == "__main__":
     fs: int | float = 10e6  # Hz
     sps = 10
     decimation: int = 1
+    base_address = 0x12345678  # As defined in DotBot radio_default.h
 
     # Open file
     iq_samples = read_iq_data(f"../capture_nRF/data/{filename}")
@@ -28,9 +29,9 @@ if __name__ == "__main__":
     iq_samples = simple_squelch(iq_samples, threshold=10e-2)
 
     # Initialise the receiver and process data
-    receiver = ReceiverBLE(fs=fs / decimation, sps=sps / decimation)  # Initialise
+    receiver = ReceiverBLE(fs=fs / decimation, sps=sps / decimation)
     bit_samples = receiver.demodulate(iq_samples)  # From IQ samples to hard decisions
-    received_packets: dict = receiver.process_phy_packet(bit_samples)  # From hard decisions to packets
+    received_packets: dict = receiver.process_phy_packet(bit_samples, base_address)  # From hard decisions to packets
 
     # Print results
     print(received_packets)

@@ -27,7 +27,6 @@ def correlate_access_code(data: np.ndarray, access_code: str, threshold: int) ->
 
 # Apply whintening (de-whitening) to an array of bytes
 def ble_whitening(data: np.ndarray, lfsr=0x01, polynomial=0x11):
-    # Input data must be LSB first (0x7C = 124 must be formatted as 0011 1110)
     # LFSR default value is 0x01 as it is the default value in the nRF DATAWHITEIV register
     # The polynomial default value is 0x11 = 0b001_0001 -> x⁷ + x⁴ + 1 (x⁷ is omitted)
     output = np.empty_like(data)  # Initialise output array
@@ -93,3 +92,16 @@ def compute_crc(data: np.ndarray, crc_init: int = 0x00FFFF, crc_poly: int = 0x00
             crc &= crc_mask  # Ensure CRC size
 
     return np.array([(crc >> (8 * i)) & 0xFF for i in range(crc_size)], dtype=np.uint8)
+
+
+# Generates (preamble + base address sequence) to use as access code
+def generate_access_code_ble(base_address: int) -> str:
+    base_address &= 0xFFFFFFFF  # 4-byte unsigned long
+    preamble = 0xAA if base_address & 0x01 else 0x55
+    preamble = format(preamble, "08b")
+
+    base_address = base_address.to_bytes(4, byteorder="little")
+    base_address = [format(byte, "08b")[::-1] for byte in base_address]
+    address_prefix = "00000000"
+
+    return "_".join([preamble] + base_address + [address_prefix])
