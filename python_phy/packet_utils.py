@@ -2,13 +2,19 @@ import numpy as np
 
 
 # Find a sequence of bits in a given binary dara array
-def correlate_access_code(data: np.ndarray, access_code: str, threshold: int) -> np.ndarray:
+def correlate_access_code(data: np.ndarray, access_code: str, threshold: int, reduce_mask: bool = False) -> np.ndarray:
     """Find a sequence of bits in a given binary dara array."""
     # access_code: from LSB to MSB (as samples arrive on-air)
     access_code = access_code.replace("_", "")
     code_len = len(access_code)
     access_int = int(access_code, 2)  # Convert the access code (e.g. "10110010") to an integer
     mask = (1 << code_len) - 1  # Create a mask to keep only the last code_len bits.
+    if reduce_mask:
+        # Create a mask that has ones everywhere except at the MSB and LSB:
+        # This is useful for differential encoding in chip sequences for IEEE 802.15.4 demodulation
+        reduced_mask = mask & ~((1 << (code_len - 1)) | 1)
+    else:
+        reduced_mask = mask
     data_reg = 0
     positions = []  # Positions where the access code has been found in data
 
@@ -19,7 +25,7 @@ def correlate_access_code(data: np.ndarray, access_code: str, threshold: int) ->
             continue
 
         # Count the number of mismatched bits between data_reg and the access code
-        mismatches = bin((data_reg ^ access_int) & mask).count("1")
+        mismatches = bin((data_reg ^ access_int) & reduced_mask).count("1")
         if mismatches <= threshold:
             # Report the position immediately after the access code was found
             positions.append(i + 1)
