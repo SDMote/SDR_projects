@@ -117,3 +117,14 @@ def generate_access_code_ble(base_address: int) -> str:
     address_prefix = "00000000"
 
     return "_".join([preamble] + base_address + [address_prefix])
+
+
+# Returns a string of chips to be used by correlate access code function
+def map_nibbles_to_chip_string(byte_array: list[int], chip_mapping: np.ndarray) -> str:
+    result = []
+    for byte in byte_array:
+        for nibble in [byte & 0x0F, (byte >> 4) & 0x0F]:  # Extract LSB first, then MSB
+            mapped_value = chip_mapping[nibble]
+            binary_string = f"{mapped_value:032b}"  # Convert to 32-bit binary
+            result.append(binary_string)  # Append delimiter
+    return "_".join(result)
