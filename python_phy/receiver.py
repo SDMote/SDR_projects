@@ -35,9 +35,10 @@ class ReceiverBLE:
         return bit_samples
 
     # Receive hard decisions (bit samples) and return dictionary with detected packets
-    def process_phy_packet(self, bit_samples: np.ndarray, base_address: int) -> dict:
+    def process_phy_packet(self, bit_samples: np.ndarray, base_address: int) -> list[dict]:
         # Decode detected packets found in bit_samples array
         preamble_detected = correlate_access_code(bit_samples, generate_access_code_ble(base_address), threshold=1)
+        detected_packets: list[dict] = []
 
         # Read packets starting from the end of the preamble
         for preamble in preamble_detected:
@@ -56,10 +57,12 @@ class ReceiverBLE:
             header_and_payload = np.concatenate((header, payload_and_crc[: -self.crc_size]))
             computed_crc = compute_crc(header_and_payload)
             crc_check = True if (computed_crc == payload_and_crc[-self.crc_size :]).all() else False
-
-            phy_payload = header_and_payload[2:]
-
             # print(f"{header_and_payload = }")
             # print(f"{crc_check = }")
 
-        return {"phy_payload": phy_payload, "crc_check": crc_check}
+            phy_payload = header_and_payload[2:]  # Remove CRC bytes
+
+            # Append dictionary to return list
+            detected_packets.append({"phy_payload": phy_payload, "crc_check": crc_check})
+
+        return detected_packets
