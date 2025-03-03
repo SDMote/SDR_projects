@@ -13,6 +13,7 @@ def correlate_access_code(data: np.ndarray, access_code: str, threshold: int) ->
     positions = []  # Positions where the access code has been found in data
 
     for i, bit in enumerate(data):
+        bit = int(bit)
         data_reg = ((data_reg << 1) | (bit & 0x1)) & mask  # Shift in the new bit
         if i + 1 < code_len:  # Start comparing once data_reg is filled
             continue
