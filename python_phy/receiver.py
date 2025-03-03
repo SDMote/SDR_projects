@@ -20,6 +20,7 @@ class ReceiverBLE:
 
     # Receives an array of complex data and returns hard decision array
     def demodulate(self, iq_samples: np.ndarray) -> np.ndarray:
+        """Receives an array of complex data and returns hard decision array."""
         # Quadrature demodulation
         freq_samples = quadrature_demod(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
 
@@ -36,6 +37,7 @@ class ReceiverBLE:
 
     # Receive hard decisions (bit samples) and return dictionary with detected packets
     def process_phy_packet(self, bit_samples: np.ndarray, base_address: int) -> list[dict]:
+        """Receive hard decisions (bit samples) and return dictionary with detected packets."""
         # Decode detected packets found in bit_samples array
         preamble_detected = correlate_access_code(bit_samples, generate_access_code_ble(base_address), threshold=1)
         detected_packets: list[dict] = []

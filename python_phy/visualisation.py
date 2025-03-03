@@ -14,6 +14,7 @@ def plot_time(
     circle: bool = False,
     time: bool = True,
 ) -> None:
+    """Plot in time domain."""
     if time:
         time_array = np.arange(len(data_list[0])) / fs * 1e6  # Time in µs
     else:
@@ -39,6 +40,7 @@ def plot_time(
 
 # Plots the spectrogram on the given axis.
 def plot_spectrogram(ax, data: np.ndarray, fs: float | int, fLO: float | int = 0, vmin: float | int = -65):
+    """Plots the spectrogram on the given axis."""
     f, t, Sxx = scipy.signal.spectrogram(
         data, fs, window="hann", nperseg=256, noverlap=128, mode="complex", return_onesided=False
     )

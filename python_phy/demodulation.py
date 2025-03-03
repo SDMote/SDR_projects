@@ -4,6 +4,7 @@ import numpy as np
 
 # Computes instantaneous frequency of a complex IQ signal
 def quadrature_demod(iq_samples: np.ndarray, gain: float | int = 1) -> np.ndarray:
+    """Computes instantaneous frequency of a complex IQ signal."""
     return np.diff(np.unwrap(np.angle(iq_samples))) * gain
 
 

@@ -3,6 +3,7 @@ import numpy as np
 
 # Find a sequence of bits in a given binary dara array
 def correlate_access_code(data: np.ndarray, access_code: str, threshold: int) -> np.ndarray:
+    """Find a sequence of bits in a given binary dara array."""
     # access_code: from LSB to MSB (as samples arrive on-air)
     access_code = access_code.replace("_", "")
     code_len = len(access_code)
@@ -27,6 +28,7 @@ def correlate_access_code(data: np.ndarray, access_code: str, threshold: int) ->
 
 # Apply whintening (de-whitening) to an array of bytes
 def ble_whitening(data: np.ndarray, lfsr=0x01, polynomial=0x11):
+    """Apply whintening (de-whitening) to an array of bytes."""
     # LFSR default value is 0x01 as it is the default value in the nRF DATAWHITEIV register
     # The polynomial default value is 0x11 = 0b001_0001 -> x⁷ + x⁴ + 1 (x⁷ is omitted)
     output = np.empty_like(data)  # Initialise output array
@@ -56,6 +58,7 @@ def ble_whitening(data: np.ndarray, lfsr=0x01, polynomial=0x11):
 
 # Pack a sequence of bits (array) into an array of bytes (integers)
 def binary_to_uint8_array(binary: np.ndarray) -> np.ndarray:
+    """Pack a sequence of bits (array) into an array of bytes (integers)."""
     # Pack binary array LSB first ([1,1,1,1,0,0,0,0]) into bytes array ([0x0F])
     # Ensure the binary array length is a multiple of 8
     if len(binary) % 8 != 0:
@@ -71,6 +74,7 @@ def binary_to_uint8_array(binary: np.ndarray) -> np.ndarray:
 
 # Computes the Cyclic Redundancy Check for a given array of bytes
 def compute_crc(data: np.ndarray, crc_init: int = 0x00FFFF, crc_poly: int = 0x00065B, crc_size: int = 3) -> np.ndarray:
+    """Computes the Cyclic Redundancy Check for a given array of bytes."""
     crc_mask = (1 << (crc_size * 8)) - 1  # Mask to n-byte width (0xFFFF for crc_size = 2)
 
     def swap_nbit(num, n):
@@ -96,6 +100,7 @@ def compute_crc(data: np.ndarray, crc_init: int = 0x00FFFF, crc_poly: int = 0x00
 
 # Generates (preamble + base address sequence) to use as access code
 def generate_access_code_ble(base_address: int) -> str:
+    """Generates (preamble + base address sequence) to use as access code."""
     base_address &= 0xFFFFFFFF  # 4-byte unsigned long
     preamble = 0xAA if base_address & 0x01 else 0x55
     preamble = format(preamble, "08b")
