@@ -34,10 +34,18 @@ def fir_filter(data: np.ndarray, taps) -> np.ndarray:
 
 
 # Additive White Gaussian Noise
-def add_awgn(signal, snr_db):
+def add_awgn(signal: np.ndarray, snr_db) -> np.ndarray:
     """Additive White Gaussian Noise."""
     signal_power = np.mean(np.abs(signal) ** 2)
     snr_linear = 10 ** (snr_db / 10)  # Calculate the noise power based on the SNR (in dB)
     noise_power = signal_power / snr_linear
     noise = np.sqrt(noise_power) * np.random.randn(len(signal))
     return signal + noise
+
+
+# Single pole IIR filter following GNU Radio implementation.
+def single_pole_iir_filter(x, alpha) -> np.ndarray:
+    """Single pole IIR filter following GNU Radio implementation."""
+    b = [alpha]  # numerator coefficients
+    a = [1, -(1 - alpha)]  # denominator coefficients
+    return scipy.signal.lfilter(b, a, x)

@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from demodulation import symbol_sync, quadrature_demod, binary_slicer
+from filters import single_pole_iir_filter
 from packet_utils import (
     correlate_access_code,
     compute_crc,
@@ -111,6 +112,7 @@ class Receiver802154:
         """Receives an array of complex data and returns hard decision array."""
         # Quadrature demodulation
         freq_samples = quadrature_demod(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
+        freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
         # Matched filter
         # TODO, something like the following
