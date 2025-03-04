@@ -15,7 +15,7 @@ if __name__ == "__main__":
     base_address = 0x12345678  # As defined in DotBot radio_default.h
 
     # Open file
-    iq_samples = read_iq_data(f"../capture_nRF/data/{filename}")
+    iq_samples = read_iq_data(f"../capture_nRF/data/new/{filename}")
 
     # Pre-processing
     # iq_samples = add_awgn(iq_samples, snr_db=4)

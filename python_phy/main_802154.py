@@ -8,7 +8,7 @@ from receiver import Receiver802154
 
 
 if __name__ == "__main__":
-    filename: str = "802154_0dBm.dat"
+    filename: str = "802154_tone_0dBm_8dBm_0MHz.dat"
     fs: int | float = 10e6  # Hz
     sps: int | float = 5
     decimation: int = 1
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     CRC_included: bool = True
 
     # Open file
-    iq_samples = read_iq_data(f"../capture_nRF/data/{filename}")
+    iq_samples = read_iq_data(f"../capture_nRF/data/new/{filename}")
 
     # Pre-processing
     # iq_samples = add_awgn(iq_samples, snr_db=4)
