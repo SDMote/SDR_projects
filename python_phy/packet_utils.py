@@ -64,17 +64,17 @@ def ble_whitening(data: np.ndarray, lfsr=0x01, polynomial=0x11):
 
 
 # Pack a sequence of bits (array) into an array of bytes (integers)
-def pack_binary_to_uint8(binary: np.ndarray) -> np.ndarray:
+def pack_bits_to_uint8(bits: np.ndarray) -> np.ndarray:
     """Pack a sequence of bits (array) into an array of bytes (integers)."""
     # Pack binary array LSB first ([1,1,1,1,0,0,0,0]) into bytes array ([0x0F])
     # Ensure the binary array length is a multiple of 8
-    if len(binary) % 8 != 0:
-        raise ValueError(f"The binary list {len(binary)} length must be a multiple of 8.")
+    if len(bits) % 8 != 0:
+        raise ValueError(f"The binary list {len(bits)} length must be a multiple of 8.")
 
     # Convert binary to NumPy array
-    binary_array = np.array(binary, dtype=np.uint8)
-    binary_array = binary_array.reshape(-1, 8)[:, ::-1]  #  LSB to MSB correction
-    uint8_array = np.packbits(binary_array, axis=1).flatten()
+    bits = np.array(bits, dtype=np.uint8)
+    bits = bits.reshape(-1, 8)[:, ::-1]  #  LSB to MSB correction
+    uint8_array = np.packbits(bits, axis=1).flatten()
 
     return uint8_array
 
@@ -120,7 +120,8 @@ def generate_access_code_ble(base_address: int) -> str:
 
 
 # Returns a string of chips to be used by correlate access code function
-def map_nibbles_to_chip_string(byte_array: list[int], chip_mapping: np.ndarray) -> str:
+def map_nibbles_to_chips(byte_array: list[int], chip_mapping: np.ndarray) -> str:
+    """Returns a string of chips to be used by correlate access code function."""
     result = []
     for byte in byte_array:
         for nibble in [byte & 0x0F, (byte >> 4) & 0x0F]:  # Extract LSB first, then MSB
@@ -128,3 +129,59 @@ def map_nibbles_to_chip_string(byte_array: list[int], chip_mapping: np.ndarray) 
             binary_string = f"{mapped_value:032b}"  # Convert to 32-bit binary
             result.append(binary_string)  # Append delimiter
     return "_".join(result)
+
+
+# Return the number of set bits in the lowest 'bits' of 'n'.
+def count_set_bits(n: int, bits: int = 32) -> int:
+    """Return the number of set bits in the lowest 'bits' of 'n'."""
+    mask = (1 << bits) - 1  # Create a mask for the lowest 'bits' bits
+    return bin(n & mask).count("1")
+
+
+# Decodes the received chip sequence by comparing it against a known mapping.
+def decode_chips(chips32: int, chip_mapping: np.ndarray, threshold: int = 32) -> int:
+    """Decodes the received chip sequence by comparing it against a known mapping."""
+    best_match = 0xFF
+    min_threshold = 33  # Value greater than the maximum possible errors (32 bits)
+
+    for i in range(16):
+        # 0x7FFFFFFE masks out the first and last bit, since these depend on previous chip data
+        # This is because we are using differential encoding
+        masked_diff = (chips32 ^ chip_mapping[i]) & 0x7FFFFFFE
+        diff_bits = count_set_bits(masked_diff, 32)  # Count the number of bits that differ
+
+        if diff_bits < min_threshold:
+            best_match = i
+            min_threshold = diff_bits
+
+    if min_threshold <= threshold:
+        return best_match & 0xF  # Return position in chip mapping
+
+    return 0xFF  # If no valid match was found, return 0xFF to indicate an error.
+
+
+# Pack chips into bytes. Assumes each byte is formed from 64 chips (32 per nibble).
+def pack_chips_to_bytes(chips: np.ndarray, num_bytes: int, chip_mapping: np.ndarray, threshold: int) -> np.ndarray:
+    """Pack chips into bytes. Assumes each byte is formed from 64 chips (32 per nibble)."""
+    bytes_out = np.empty(num_bytes, dtype=np.uint8)
+
+    for i in range(num_bytes):
+        # Convert 32 chips into an integer
+        nibble1 = chips_to_int(chips[i * 64 : i * 64 + 32])
+        nibble2 = chips_to_int(chips[i * 64 + 32 : (i + 1) * 64])
+
+        # Decode the nibbles
+        nibble1 = decode_chips(nibble1, chip_mapping=chip_mapping, threshold=threshold)
+        nibble2 = decode_chips(nibble2, chip_mapping=chip_mapping, threshold=threshold)
+
+        # Pack into a byte
+        bytes_out[i] = nibble1 | (nibble2 << 4)
+
+    return bytes_out
+
+
+# Convert a 32-length binary array to an integer.
+def chips_to_int(chips: np.ndarray) -> int:
+    """Convert a 32-length binary array to an integer."""
+    assert len(chips) == 32, "Input must be exactly 32 elements long"
+    return int("".join(map(str, chips)), 2)
