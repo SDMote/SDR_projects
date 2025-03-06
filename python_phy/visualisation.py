@@ -98,9 +98,29 @@ def plot_payload(packet_data: dict) -> None:
     plt.tight_layout()
 
 
+# Compare two byte arrays and return a bitwise array of differences
 def compare_bits_with_reference(payload: np.ndarray, reference_payload: np.ndarray) -> np.ndarray:
     if payload.shape != reference_payload.shape:
         raise ValueError("Message lengths do not match!")
 
     error_bits = np.bitwise_xor(reference_payload, payload)  # Compute XOR to get differing bits
     return np.unpackbits(error_bits, bitorder="little")  # Unpack to binary representation
+
+
+# Plots IQ data in subplots.
+def subplots_iq(data, fs, titles=None, labels=None, show=True, figsize=(10, 6)) -> None:
+    """Plots IQ data in subplots."""
+    num_subplots = len(data)
+    _, axes = plt.subplots(num_subplots, 1, figsize=figsize)
+
+    if titles is None:
+        titles = [f"IQ Data {i+1}" for i in range(num_subplots)]
+    if labels is None:
+        labels = [["I (In-phase)", "Q (Quadrature)"]] * num_subplots
+
+    for i, iq_data in enumerate(data):
+        plot_time(axes[i], [np.real(iq_data), np.imag(iq_data)], fs, labels[i], titles[i], time=False)
+
+    plt.tight_layout()
+    if show:
+        plt.show()
