@@ -8,7 +8,7 @@ from receiver import Receiver802154
 
 
 if __name__ == "__main__":
-    filename: str = "802154_tone_0dBm_8dBm_0MHz.dat"
+    filename: str = "BLE_802154_0dBm_8dBm_0MHz.dat"
     fs: int | float = 10e6  # Hz
     sps: int | float = 5
     decimation: int = 1
