@@ -49,3 +49,33 @@ def single_pole_iir_filter(x, alpha) -> np.ndarray:
     b = [alpha]  # numerator coefficients
     a = [1, -(1 - alpha)]  # denominator coefficients
     return scipy.signal.lfilter(b, a, x)
+
+
+# Applies a delay to the input data by first applying a fractional delay using an FIR filter,
+# and then applying an integer delay via sample shifting with zero-padding.
+def fractional_delay_fir_filter(data: np.ndarray, delay: float, num_taps: int = 21) -> np.ndarray:
+    """
+    Applies a delay to the input data by first applying a fractional delay using an FIR filter,
+    and then applying an integer delay via sample shifting with zero-padding.
+    """
+    # Separate delay into its integer and fractional parts
+    integer_delay = int(np.floor(delay))
+    fractional_delay = delay - integer_delay
+
+    # Build the FIR filter taps for the fractional delay
+    n = np.arange(-num_taps // 2, num_taps // 2)  # ...-3,-2,-1,0,1,2,3...
+    h = np.sinc(n - fractional_delay)  # Shifted sinc function
+    h *= np.hamming(len(n))  # Hamming window (avoid spectral leakage)
+    h /= np.sum(h)  # Normalise filter taps, unity gain
+    frac_delayed = np.convolve(data, h, mode="full")  # Apply filter
+
+    # Compensate for the intrinsic delay caused by convolution
+    frac_delayed = np.roll(frac_delayed, -num_taps // 2)
+    frac_delayed = frac_delayed[: len(data)]
+
+    # Integer delay and pad with zeros
+    delayed_output = np.zeros_like(frac_delayed)
+    if integer_delay < len(frac_delayed):
+        delayed_output[integer_delay:] = frac_delayed[: len(frac_delayed) - integer_delay]
+
+    return delayed_output
