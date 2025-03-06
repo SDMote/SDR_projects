@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from data_io import read_iq_data
 from filters import simple_squelch, decimating_fir_filter, add_awgn
-from visualisation import create_subplots, plot_payload
+from visualisation import subplots_iq_spectrogra_bits, plot_payload
 from receiver import ReceiverBLE
 
 
@@ -37,6 +37,6 @@ if __name__ == "__main__":
     print(received_packets)
 
     # Plot
-    create_subplots([iq_samples, bit_samples], fs=fs / decimation, show=False)
+    subplots_iq_spectrogra_bits([iq_samples, bit_samples], fs=fs / decimation, show=False)
     plot_payload(received_packets[0])
     plt.show()

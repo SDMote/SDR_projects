@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from data_io import read_iq_data
 from filters import simple_squelch, decimating_fir_filter, add_awgn
-from visualisation import create_subplots
+from visualisation import subplots_iq_spectrogra_bits
 from receiver import Receiver802154
 
 
@@ -40,4 +40,4 @@ if __name__ == "__main__":
     print(received_packets)
 
     # Plot
-    create_subplots([iq_samples, chip_samples], fs=fs / decimation)
+    subplots_iq_spectrogra_bits([iq_samples, chip_samples], fs=fs / decimation)
