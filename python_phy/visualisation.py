@@ -96,3 +96,11 @@ def plot_payload(packet_data: dict) -> None:
     )
     plt.grid()
     plt.tight_layout()
+
+
+def compare_bits_with_reference(payload: np.ndarray, reference_payload: np.ndarray) -> np.ndarray:
+    if payload.shape != reference_payload.shape:
+        raise ValueError("Message lengths do not match!")
+
+    error_bits = np.bitwise_xor(reference_payload, payload)  # Compute XOR to get differing bits
+    return np.unpackbits(error_bits, bitorder="little")  # Unpack to binary representation
