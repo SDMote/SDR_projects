@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 
 from data_io import read_iq_data
 from filters import simple_squelch, decimating_fir_filter, add_awgn
-from visualisation import create_subplots
+from visualisation import create_subplots, plot_payload
 from receiver import ReceiverBLE
 
 
 if __name__ == "__main__":
-    filename: str = "BLE_0dBm.dat"
+    filename: str = "BLE_tone_0dBm_8dBm_0MHz.dat"
     fs: int | float = 10e6  # Hz
     sps = 10
     decimation: int = 1
@@ -37,4 +37,6 @@ if __name__ == "__main__":
     print(received_packets)
 
     # Plot
-    create_subplots([iq_samples, bit_samples], fs=fs / decimation)
+    create_subplots([iq_samples, bit_samples], fs=fs / decimation, show=False)
+    plot_payload(received_packets[0])
+    plt.show()

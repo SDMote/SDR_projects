@@ -59,7 +59,7 @@ def plot_spectrogram(ax, data: np.ndarray, fs: float | int, fLO: float | int = 0
 
 # Hardcoded subplots of time domain and spectrogram
 # TODO parametrise
-def create_subplots(data, fs, fLO=0):
+def create_subplots(data, fs, fLO=0, show=True) -> None:
     fig, axes = plt.subplots(3, 1, figsize=(10, 6))
     plot_time(
         axes[0], [np.real(data[0]), np.imag(data[0])], fs, ["I (In-phase)", "Q (Quadrature)"], "IQ Data", time=False
@@ -68,4 +68,31 @@ def create_subplots(data, fs, fLO=0):
     # fig.colorbar(cmesh, ax=axes[1], label="Power/Frequency (dB/Hz)")
     plot_time(axes[2], [data[1]], fs, ["Hard decisions"], "Hard decisions", ylims=(-0.5, 1.5), circle=True, time=False)
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+
+
+# Plot each byte of the payload as an unsigned integer
+def plot_payload(packet_data: dict) -> None:
+    """Plot each byte of the payload as an unsigned integer."""
+    plt.figure()
+    plt.plot(packet_data["payload"], marker="o", linestyle="-", color="b")
+    plt.title("Physical payload")
+    plt.xlabel("Byte index")
+    plt.ylabel("Bytes as unsigned integers")
+
+    # Create a box with payload details
+    crc_text = "OK" if packet_data["crc_check"] else "ERROR"
+    info_text = f"Length: {packet_data['length']} B\nCRC: {crc_text} "
+    plt.gca().text(
+        1.05,
+        0.55,
+        info_text,
+        fontsize=10,
+        ha="left",
+        va="top",
+        transform=plt.gca().transAxes,
+        bbox=dict(facecolor="white", alpha=0.5),
+    )
+    plt.grid()
+    plt.tight_layout()
