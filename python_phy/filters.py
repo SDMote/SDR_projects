@@ -30,7 +30,7 @@ def decimating_fir_filter(
 # Apply FIR filtering (convolution) with the given taps
 def fir_filter(data: np.ndarray, taps) -> np.ndarray:
     """Apply FIR filtering (convolution) with the given taps."""
-    return np.convolve(data, taps, mode="same")
+    return scipy.signal.convolve(data, taps, mode="same")
 
 
 # Additive White Gaussian Noise
@@ -67,7 +67,7 @@ def fractional_delay_fir_filter(data: np.ndarray, delay: float, num_taps: int = 
     h = np.sinc(n - fractional_delay)  # Shifted sinc function
     h *= np.hamming(len(n))  # Hamming window (avoid spectral leakage)
     h /= np.sum(h)  # Normalise filter taps, unity gain
-    frac_delayed = np.convolve(data, h, mode="full")  # Apply filter
+    frac_delayed = scipy.signal.convolve(data, h, mode="full")  # Apply filter
 
     # Compensate for the intrinsic delay caused by convolution
     frac_delayed = np.roll(frac_delayed, -num_taps // 2)
