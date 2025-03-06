@@ -31,7 +31,9 @@ if __name__ == "__main__":
     # Initialise the receiver and process data
     receiver = ReceiverBLE(fs=fs / decimation, sps=sps / decimation)
     bit_samples = receiver.demodulate(iq_samples)  # From IQ samples to hard decisions
-    received_packets: dict = receiver.process_phy_packet(bit_samples, base_address)  # From hard decisions to packets
+    received_packets: list[dict] = receiver.process_phy_packet(
+        bit_samples, base_address
+    )  # From hard decisions to packets
 
     # Print results
     print(received_packets)

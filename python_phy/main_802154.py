@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # Initialise the receiver and process data
     receiver = Receiver802154(fs=fs / decimation, sps=sps / decimation)
     chip_samples = receiver.demodulate(iq_samples)  # From IQ samples to hard decisions
-    received_packets: dict = receiver.process_phy_packet(
+    received_packets: list[dict] = receiver.process_phy_packet(
         chip_samples, preamble_threshold=preamble_detection_threshold, CRC_included=CRC_included
     )  # From hard decisions to packets
 
