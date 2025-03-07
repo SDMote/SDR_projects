@@ -76,6 +76,8 @@ def multiply_by_complex_exponential(
 # Correlation wrapper to estimate where an interference is on an affected packet.
 def correlation_wrapper(affected: np.ndarray, interference: np.ndarray) -> np.ndarray:
     """Correlation wrapper to estimate where an interference is on an affected packet."""
+    template_energy = np.sum(np.abs(interference) ** 2)  # For amplitude estimation
     offset = len(interference) - 1  # Because using mode="full"
     correlation = scipy.signal.correlate(affected, interference, mode="full")[offset : offset + len(affected)]
+    correlation /= template_energy  # Normalise for amplitude estimation
     return correlation
