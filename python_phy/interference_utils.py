@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from visualisation import compare_bits_with_reference
 
 
 # Applies a delay to the input data by first applying a fractional delay using an FIR filter,
@@ -137,3 +138,38 @@ def find_interference_parameters(
             best_sample_shift = max_idx
 
     return best_frequency, best_amplitude, best_phase, best_sample_shift
+
+
+# Compute the Bit Error Rate (BER) for a range of frequency offsets.
+def compute_ber_vs_frequency(
+    freq_range: range,
+    affected: np.ndarray,
+    interference: np.ndarray,
+    fs: float,
+    base_address: int,
+    reference_packet: dict,
+    receiver: object,
+) -> np.ndarray:
+    """Compute the Bit Error Rate (BER) for a range of frequency offsets."""
+    bit_error_rates: np.ndarray = np.empty(len(freq_range))  # Initialise return
+
+    for index, freq in enumerate(freq_range):
+        # Subtract interference using the current frequency offset
+        subtracted = subtract_interference_wrapper(
+            affected=affected, interference=interference, fs=fs, freq_offsets=[freq]
+        )
+        # Demodulate subtracted IQ data
+        bit_samples = receiver.demodulate(subtracted)
+        interfered_packet: list[dict] = receiver.process_phy_packet(
+            bit_samples, base_address
+        )  # Assume BLE receiver (TODO: change hardcoding)
+        if interfered_packet:
+            interfered_packet: dict = interfered_packet[0]
+            bit2bit_difference = compare_bits_with_reference(interfered_packet["payload"], reference_packet["payload"])
+            ber = sum(bit2bit_difference) / len(bit2bit_difference) * 100
+
+            bit_error_rates[index] = ber
+        else:
+            bit_error_rates[index] = np.nan  # Not detected packet (subtraction probably messed up with preamble)
+
+    return bit_error_rates

@@ -124,3 +124,15 @@ def subplots_iq(data, fs, titles=None, labels=None, show=True, figsize=(10, 6)) 
     plt.tight_layout()
     if show:
         plt.show()
+
+
+# Plots the Bit Error Rate (BER) against frequency offset.
+def plot_ber_vs_frequency_offset(freq_range: range, bit_error_rates: np.ndarray, figsize=(8, 5)) -> None:
+    """Plots the Bit Error Rate (BER) against frequency offset."""
+    plt.figure(figsize=figsize)
+    plt.plot(list(freq_range), bit_error_rates, marker="o", linestyle="-", color="b")
+    plt.xlabel("Frequency offset (Hz)")
+    plt.ylabel("Bit error rate (%)")
+    plt.title("BER vs Frequency offset")
+    plt.grid(True, linestyle="--", alpha=0.7)
+    plt.show()
