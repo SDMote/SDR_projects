@@ -81,3 +81,59 @@ def correlation_wrapper(affected: np.ndarray, interference: np.ndarray) -> np.nd
     correlation = scipy.signal.correlate(affected, interference, mode="full")[offset : offset + len(affected)]
     correlation /= template_energy  # Normalise for amplitude estimation
     return correlation
+
+
+# Subtract a known interference from an affected packet.
+def subtract_interference_wrapper(
+    affected: np.ndarray,
+    interference: np.ndarray,
+    fs: float,
+    freq_offsets: list[float],
+    amplitude: float = None,
+    phase: float = None,
+    samples_shift: int = None,
+) -> np.ndarray:
+    """Subtract a known interference from an affected packet."""
+    est_frequency, est_amplitude, est_phase, est_samples_shift = find_interference_parameters(
+        affected, interference, freq_offsets, fs
+    )
+
+    def assign_if_none(old, new):  # Helper function to update parameters
+        return new if old is None else old
+
+    amplitude, phase, samples_shift = map(
+        assign_if_none, (amplitude, phase, samples_shift), (est_amplitude, est_phase, est_samples_shift)
+    )
+
+    # Subtract the interference
+    ready_to_subtract = multiply_by_complex_exponential(
+        interference, fs, freq=est_frequency, phase=phase, amplitude=amplitude
+    )
+    ready_to_subtract = pad_interference(affected, ready_to_subtract, samples_shift)
+
+    return affected - ready_to_subtract
+
+
+# Estimate best frequency offset, amplitude, phase and sample shift to subtract from affected packet.
+def find_interference_parameters(
+    affected: np.ndarray, interference: np.ndarray, freq_offsets: list[float], fs: float
+) -> tuple[float, float, float, int]:
+    """Estimate best frequency offset, amplitude, phase and sample shift to subtract from affected packet."""
+    best_amplitude = -1.0
+    best_frequency = None
+    best_phase = None
+    best_sample_shift = None
+
+    for frequency in freq_offsets:
+        rotated_interference = multiply_by_complex_exponential(interference, fs=fs, freq=frequency)
+        correlation = correlation_wrapper(affected, rotated_interference)
+        max_idx = np.argmax(np.abs(correlation))
+        curr_amplitude = np.abs(correlation[max_idx])
+
+        if curr_amplitude > best_amplitude:
+            best_amplitude = curr_amplitude
+            best_frequency = frequency
+            best_phase = np.angle(correlation[max_idx])
+            best_sample_shift = max_idx
+
+    return best_frequency, best_amplitude, best_phase, best_sample_shift
