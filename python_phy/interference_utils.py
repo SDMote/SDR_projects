@@ -98,12 +98,11 @@ def subtract_interference_wrapper(
     est_frequency, est_amplitude, est_phase, est_samples_shift = find_interference_parameters(
         affected, interference, freq_offsets, fs
     )
-
-    def assign_if_none(old, new):  # Helper function to update parameters
-        return new if old is None else old
-
+    # Update parameters if not defined
     amplitude, phase, samples_shift = map(
-        assign_if_none, (amplitude, phase, samples_shift), (est_amplitude, est_phase, est_samples_shift)
+        lambda old, new: new if old is None else old,
+        (amplitude, phase, samples_shift),
+        (est_amplitude, est_phase, est_samples_shift),
     )
 
     # Subtract the interference
