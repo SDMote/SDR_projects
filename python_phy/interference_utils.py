@@ -41,14 +41,15 @@ def pad_interference(
     Pads iq_samples_interference with zeros at the beginning (delay_zero_padding)
     and at the end to match the length of iq_samples.
     """
-    if delay_zero_padding < 0:
-        raise ValueError("delay_zero_padding must be non-negative")
+    assert 0 <= delay_zero_padding < len(iq_samples), "delay_zero_padding out of range"
+
+    # If the interference plus delay is too long, crop the interference
+    max_interference_length = len(iq_samples) - delay_zero_padding
+    if len(iq_samples_interference) > max_interference_length:
+        iq_samples_interference = iq_samples_interference[:max_interference_length]
 
     # Compute the necessary zero padding at the end
     end_padding = len(iq_samples) - (len(iq_samples_interference) + delay_zero_padding)
-
-    if end_padding < 0:
-        raise ValueError("The interference plus delay exceeds the length of iq_samples")
 
     padded_interference = np.concatenate(
         [
