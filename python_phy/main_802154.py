@@ -11,7 +11,6 @@ from receiver import Receiver802154
 @click.command()
 @click.option("--filename", default="802154_0dBm.dat", type=str, help="The name of the data file to process.")
 @click.option("--fs", default=10e6, type=float, help="Sampling frequency in Hz (default: 10e6).")
-@click.option("--sps", default=5, type=float, help="Samples per symbol (default: 5).")
 @click.option("--decimation", default=1, type=int, help="Decimation factor (default: 1).")
 @click.option(
     "--crc_included",
@@ -25,9 +24,12 @@ from receiver import Receiver802154
     type=int,
     help="How many bit errors are accepted when detecting the preamble (default: 12).",
 )
-def main(
-    filename: str, fs: float, sps: float, decimation: int, crc_included: bool, preamble_detection_threshold: int
-) -> None:
+def main(filename: str, fs: float, decimation: int, crc_included: bool, preamble_detection_threshold: int) -> None:
+    """Process IQ data from file."""
+
+    transmission_rate = 2e6  # IEEE 802.15.4 2 Mchip/s
+    sps: float = fs / transmission_rate
+
     # Open file
     iq_samples = read_iq_data(f"../capture_nRF/data/new/{filename}")
 

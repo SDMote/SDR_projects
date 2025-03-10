@@ -11,10 +11,14 @@ from receiver import ReceiverBLE
 @click.command()
 @click.option("--filename", default="BLE_0dBm.dat", type=str, help="The name of the data file to process.")
 @click.option("--fs", default=10e6, type=float, help="Sampling frequency in Hz (default: 10e6).")
-@click.option("--sps", default=10, type=float, help="Samples per symbol (default: 10).")
 @click.option("--decimation", default=1, type=int, help="Decimation factor (default: 1).")
-def main(filename: str, fs: float, sps: float, decimation: int) -> None:
+def main(filename: str, fs: float, decimation: int) -> None:
     """Process IQ data from file."""
+
+    # For now assume BLE 1 Mb/s. TODO: consider BLE 2 Mb/s
+    transmission_rate = 1e6  # BLE 1 Mb/s
+    sps: float = fs / transmission_rate
+
     # Base address as defined in DotBot radio_default.h
     base_address: int = 0x12345678
 
