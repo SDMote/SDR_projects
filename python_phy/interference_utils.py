@@ -16,10 +16,10 @@ def fractional_delay_fir_filter(data: np.ndarray, delay: float, num_taps: int = 
 
     # Build the FIR filter taps for the fractional delay
     n = np.arange(-num_taps // 2, num_taps // 2)  # ...-3,-2,-1,0,1,2,3...
-    h = np.sinc(n - fractional_delay)  # Shifted sinc function
-    h *= np.hamming(len(n))  # Hamming window (avoid spectral leakage)
-    h /= np.sum(h)  # Normalise filter taps, unity gain
-    frac_delayed = scipy.signal.convolve(data, h, mode="full")  # Apply filter
+    fir_kernel = np.sinc(n - fractional_delay)  # Shifted sinc function
+    # fir_kernel *= np.hamming(len(n))  # Hamming window (avoid spectral leakage)
+    fir_kernel /= np.sum(fir_kernel)  # Normalise filter taps, unity gain
+    frac_delayed = scipy.signal.convolve(data, fir_kernel, mode="full")  # Apply filter
 
     # Compensate for the intrinsic delay caused by convolution
     frac_delayed = np.roll(frac_delayed, -num_taps // 2)
