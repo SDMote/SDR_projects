@@ -1,3 +1,4 @@
+import click
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -7,12 +8,15 @@ from visualisation import subplots_iq_spectrogra_bits, plot_payload
 from receiver import ReceiverBLE
 
 
-if __name__ == "__main__":
-    filename: str = "BLE_tone_0dBm_8dBm_0MHz.dat"
-    fs: int | float = 10e6  # Hz
-    sps = 10
-    decimation: int = 1
-    base_address = 0x12345678  # As defined in DotBot radio_default.h
+@click.command()
+@click.option("--filename", default="BLE_0dBm.dat", type=str, help="The name of the data file to process.")
+@click.option("--fs", default=10e6, type=float, help="Sampling frequency in Hz (default: 10e6).")
+@click.option("--sps", default=10, type=float, help="Samples per symbol (default: 10).")
+@click.option("--decimation", default=1, type=int, help="Decimation factor (default: 1).")
+def main(filename: str, fs: float, sps: float, decimation: int) -> None:
+    """Process IQ data from file."""
+    # Base address as defined in DotBot radio_default.h
+    base_address: int = 0x12345678
 
     # Open file
     iq_samples = read_iq_data(f"../capture_nRF/data/new/{filename}")
@@ -40,5 +44,10 @@ if __name__ == "__main__":
 
     # Plot
     subplots_iq_spectrogra_bits([iq_samples, bit_samples], fs=fs / decimation, show=False)
-    plot_payload(received_packets[0])
+    if received_packets:
+        plot_payload(received_packets[0])
     plt.show()
+
+
+if __name__ == "__main__":
+    main()
