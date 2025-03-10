@@ -15,33 +15,16 @@ from receiver import ReceiverBLE
 def main(filename: str, fs: float, decimation: int) -> None:
     """Process IQ data from file."""
 
-    # For now assume BLE 1 Mb/s. TODO: consider BLE 2 Mb/s
-    transmission_rate = 1e6  # BLE 1 Mb/s
-    sps: float = fs / transmission_rate
-
-    # Base address as defined in DotBot radio_default.h
-    base_address: int = 0x12345678
-
     # Open file
     iq_samples = read_iq_data(f"../capture_nRF/data/new/{filename}")
 
-    # Pre-processing
+    # Simulate channel
     # iq_samples = add_awgn(iq_samples, snr_db=4)
 
-    # Low pass filter
-    iq_samples = decimating_fir_filter(
-        iq_samples, decimation=decimation, gain=1, fs=fs, cutoff_freq=1e6, transition_width=500e3, window="hamming"
-    )
-
-    # Squelch
-    iq_samples = simple_squelch(iq_samples, threshold=10e-2)
-
     # Initialise the receiver and process data
-    receiver = ReceiverBLE(fs=fs / decimation, sps=sps / decimation)
+    receiver = ReceiverBLE(fs=fs, decimation=decimation)
     bit_samples = receiver.demodulate(iq_samples)  # From IQ samples to hard decisions
-    received_packets: list[dict] = receiver.process_phy_packet(
-        bit_samples, base_address
-    )  # From hard decisions to packets
+    received_packets: list[dict] = receiver.process_phy_packet(bit_samples)  # From hard decisions to packets
 
     # Print results
     print(received_packets)

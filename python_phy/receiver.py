@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from demodulation import symbol_sync, quadrature_demod, binary_slicer
-from filters import single_pole_iir_filter
+from filters import single_pole_iir_filter, decimating_fir_filter, simple_squelch
 from packet_utils import (
     correlate_access_code,
     compute_crc,
@@ -15,15 +15,41 @@ from packet_utils import (
 
 
 class ReceiverBLE:
-    def __init__(self, fs: int | float, sps: int | float):
+    # Class variables
+    transmission_rate = 1e6  # BLE 1 Mb/s
+    fsk_deviation_ble: float = 250e3  # Hz
+    crc_size: int = 3  # 3 bytes CRC for BLE
+
+    def __init__(self, fs: int | float, decimation: int):
+        # Instance variables
         self.fs = fs  # Sampling rate
-        self.sps = sps
-        self.crc_size: int = 3  # 3 bytes CRC for BLE
-        self.fsk_deviation_ble: int | float = 250e3  # Hz
+        self.sps: float = self.fs / self.transmission_rate
+        self.decimation = decimation
 
     # Receives an array of complex data and returns hard decision array
-    def demodulate(self, iq_samples: np.ndarray) -> np.ndarray:
+    def demodulate(
+        self,
+        iq_samples: np.ndarray,
+        squelch_threshold: float = 1e-1,
+        cutoff_freq: float = 1e6,
+        transition_width: float = 100e3,
+    ) -> np.ndarray:
         """Receives an array of complex data and returns hard decision array."""
+
+        # Low pass filter
+        iq_samples = decimating_fir_filter(
+            iq_samples,
+            decimation=self.decimation,
+            gain=1,
+            fs=self.fs,
+            cutoff_freq=cutoff_freq,
+            transition_width=transition_width,
+            window="hamming",
+        )
+
+        # Squelch
+        iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
+
         # Quadrature demodulation
         freq_samples = quadrature_demod(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
 
@@ -36,10 +62,14 @@ class ReceiverBLE:
         ## Symbol synchronisation
         bit_samples = symbol_sync(freq_samples, sps=self.sps)
         bit_samples = binary_slicer(bit_samples)
+
+        # May want to add intermediate step returns for debugging (low-pass filter, squelch, matched filtering)
         return bit_samples
 
     # Receive hard decisions (bit samples) and return dictionary with detected packets
-    def process_phy_packet(self, bit_samples: np.ndarray, base_address: int, preamble_threshold: int = 2) -> list[dict]:
+    def process_phy_packet(
+        self, bit_samples: np.ndarray, base_address: int = 0x12345678, preamble_threshold: int = 2
+    ) -> list[dict]:
         """Receive hard decisions (bit samples) and return dictionary with detected packets."""
         # Decode detected packets found in bit_samples array
         preamble_positions: np.ndarray = correlate_access_code(
@@ -78,7 +108,13 @@ class ReceiverBLE:
 
 
 class Receiver802154:
-    CHIP_MAPPING: np.ndarray = np.array(
+    # Class variables
+    transmission_rate = 2e6  # IEEE 802.15.4 2 Mchip/s
+    fsk_deviation_802154: float = 500e3  # Hz
+    crc_size: int = 2  # 2 bytes CRC for IEEE 802.15.4
+    max_packet_len: int = 127
+
+    chip_mapping: np.ndarray = np.array(
         [
             0xE077AE6C,  # 0
             0xCE077AE6,  # 1
@@ -100,16 +136,36 @@ class Receiver802154:
         dtype=np.uint32,
     )
 
-    def __init__(self, fs: int | float, sps: int | float):
+    def __init__(self, fs: int | float, decimation: int):
+        # Instance variables
         self.fs = fs  # Sampling rate
-        self.sps = sps
-        self.crc_size: int = 2  # 2 bytes CRC for IEEE 802.15.4
-        self.fsk_deviation_802154: int | float = 500e3  # Hz
-        self.max_packet_len: int = 127
+        self.sps: float = self.fs / self.transmission_rate
+        self.decimation = decimation
 
     # Receives an array of complex data and returns hard decision array
-    def demodulate(self, iq_samples: np.ndarray) -> np.ndarray:
+    def demodulate(
+        self,
+        iq_samples: np.ndarray,
+        squelch_threshold: float = 1e-1,
+        cutoff_freq: float = 2e6,
+        transition_width: float = 200e3,
+    ) -> np.ndarray:
         """Receives an array of complex data and returns hard decision array."""
+
+        # Low pass filter
+        iq_samples = decimating_fir_filter(
+            iq_samples,
+            decimation=self.decimation,
+            gain=1,
+            fs=self.fs,
+            cutoff_freq=cutoff_freq,
+            transition_width=transition_width,
+            window="hamming",
+        )
+
+        # Squelch
+        iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
+
         # Quadrature demodulation
         freq_samples = quadrature_demod(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
         freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
@@ -131,7 +187,7 @@ class Receiver802154:
     ) -> list[dict]:
         """Receive hard decisions (bit samples) and return dictionary with detected packets."""
         # Decode detected packets found in bit_samples array
-        access_code: str = map_nibbles_to_chips([0x00, 0x00, 0x00, 0x00, 0xA7], self.CHIP_MAPPING)
+        access_code: str = map_nibbles_to_chips([0x00, 0x00, 0x00, 0x00, 0xA7], self.chip_mapping)
         preamble_positions: np.ndarray = correlate_access_code(
             chip_samples, access_code, threshold=preamble_threshold, reduce_mask=True
         )
@@ -142,7 +198,7 @@ class Receiver802154:
             # Length reading for IEEE 802.15.4
             payload_start: int = preamble + 2 * 32  # 2 nibbles, 1 byte
             payload_length = pack_chips_to_bytes(
-                chip_samples[preamble:payload_start], num_bytes=1, chip_mapping=self.CHIP_MAPPING, threshold=10
+                chip_samples[preamble:payload_start], num_bytes=1, chip_mapping=self.chip_mapping, threshold=10
             )  # Payload length in bytes
             payload_length = payload_length[0]
             assert payload_length <= self.max_packet_len, "Maximum payload length is 127 bytes"
@@ -151,7 +207,7 @@ class Receiver802154:
             payload = pack_chips_to_bytes(
                 chip_samples[payload_start : payload_start + payload_length * 64],
                 num_bytes=payload_length,
-                chip_mapping=self.CHIP_MAPPING,
+                chip_mapping=self.chip_mapping,
                 threshold=32,  # Once the preamble and length are detected, just return closest guess
             )
 

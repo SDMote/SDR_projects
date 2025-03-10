@@ -27,25 +27,14 @@ from receiver import Receiver802154
 def main(filename: str, fs: float, decimation: int, crc_included: bool, preamble_detection_threshold: int) -> None:
     """Process IQ data from file."""
 
-    transmission_rate = 2e6  # IEEE 802.15.4 2 Mchip/s
-    sps: float = fs / transmission_rate
-
     # Open file
     iq_samples = read_iq_data(f"../capture_nRF/data/new/{filename}")
 
-    # Pre-processing
+    # Simulate channel
     # iq_samples = add_awgn(iq_samples, snr_db=4)
 
-    # Low pass filter
-    iq_samples = decimating_fir_filter(
-        iq_samples, decimation=decimation, gain=1, fs=fs, cutoff_freq=2e6, transition_width=500e2, window="hamming"
-    )
-
-    # Squelch
-    iq_samples = simple_squelch(iq_samples, threshold=10e-2)
-
     # Initialise the receiver and process data
-    receiver = Receiver802154(fs=fs / decimation, sps=sps / decimation)
+    receiver = Receiver802154(fs=fs, decimation=decimation)
     chip_samples = receiver.demodulate(iq_samples)  # From IQ samples to hard decisions
     received_packets: list[dict] = receiver.process_phy_packet(
         chip_samples, preamble_threshold=preamble_detection_threshold, CRC_included=crc_included
