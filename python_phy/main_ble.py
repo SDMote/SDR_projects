@@ -26,7 +26,7 @@ def main(filename: str, fs: float, sps: float, decimation: int) -> None:
 
     # Low pass filter
     iq_samples = decimating_fir_filter(
-        iq_samples, decimation=decimation, gain=1, fs=fs, cutoff_freq=1.5e6, transition_width=1000e3, window="hamming"
+        iq_samples, decimation=decimation, gain=1, fs=fs, cutoff_freq=1e6, transition_width=500e3, window="hamming"
     )
 
     # Squelch

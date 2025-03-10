@@ -36,7 +36,7 @@ def main(
 
     # Low pass filter
     iq_samples = decimating_fir_filter(
-        iq_samples, decimation=decimation, gain=1, fs=fs, cutoff_freq=3e6, transition_width=1000e3, window="hamming"
+        iq_samples, decimation=decimation, gain=1, fs=fs, cutoff_freq=2e6, transition_width=500e2, window="hamming"
     )
 
     # Squelch
