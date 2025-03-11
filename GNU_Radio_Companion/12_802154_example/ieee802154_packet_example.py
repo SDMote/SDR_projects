@@ -27,8 +27,6 @@ from PyQt5 import Qt
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
-import ieee802154_packet_example_epy_block_0 as epy_block_0  # embedded python block
-import ieee802154_packet_example_epy_block_1 as epy_block_1  # embedded python block
 import ieee802_15_4
 import sip
 import threading
