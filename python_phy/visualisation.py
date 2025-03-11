@@ -101,7 +101,7 @@ def plot_payload(packet_data: dict) -> None:
 # Compare two byte arrays and return a bitwise array of differences
 def compare_bits_with_reference(payload: np.ndarray, reference_payload: np.ndarray) -> np.ndarray:
     if payload.shape != reference_payload.shape:
-        raise ValueError("Message lengths do not match!")
+        return None
 
     error_bits = np.bitwise_xor(reference_payload, payload)  # Compute XOR to get differing bits
     return np.unpackbits(error_bits, bitorder="little")  # Unpack to binary representation
@@ -127,7 +127,7 @@ def subplots_iq(data, fs, titles=None, labels=None, show=True, figsize=(10, 6)) 
 
 
 # Plots the Bit Error Rate (BER) against frequency offset.
-def plot_ber_vs_frequency_offset(freq_range: range, bit_error_rates: np.ndarray, figsize=(8, 5)) -> None:
+def plot_ber_vs_frequency_offset(freq_range: range, bit_error_rates: np.ndarray, figsize=(8, 5), show=True) -> None:
     """Plots the Bit Error Rate (BER) against frequency offset."""
     plt.figure(figsize=figsize)
     plt.plot(list(freq_range), bit_error_rates, marker="o", linestyle="-", color="b")
@@ -135,4 +135,5 @@ def plot_ber_vs_frequency_offset(freq_range: range, bit_error_rates: np.ndarray,
     plt.ylabel("Bit error rate (%)")
     plt.title("BER vs Frequency offset")
     plt.grid(True, linestyle="--", alpha=0.7)
-    plt.show()
+    if show:
+        plt.show()
