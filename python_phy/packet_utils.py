@@ -109,8 +109,8 @@ def compute_crc(data: np.ndarray, crc_init: int = 0x00FFFF, crc_poly: int = 0x00
 def generate_access_code_ble(base_address: int) -> str:
     """Generates (preamble + base address sequence) to use as access code."""
     base_address &= 0xFFFFFFFF  # 4-byte unsigned long
-    preamble = 0xAA if base_address & 0x01 else 0x55
-    preamble = format(preamble, "08b")
+    preamble = 0x55 if base_address & 0x01 else 0xAA
+    preamble = format(preamble, "08b")[::-1]
 
     base_address = base_address.to_bytes(4, byteorder="little")
     base_address = [format(byte, "08b")[::-1] for byte in base_address]
