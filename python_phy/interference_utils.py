@@ -145,7 +145,6 @@ def compute_ber_vs_frequency(
     affected: np.ndarray,
     interference: np.ndarray,
     fs: float,
-    base_address: int,
     reference_packet: dict,
     receiver: object,
 ) -> np.ndarray:
@@ -160,7 +159,7 @@ def compute_ber_vs_frequency(
         # Demodulate subtracted IQ data
         bit_samples = receiver.demodulate(subtracted)
         interfered_packet: list[dict] = receiver.process_phy_packet(
-            bit_samples, base_address
+            bit_samples
         )  # Assume BLE receiver (TODO: change hardcoding)
         if interfered_packet:
             interfered_packet: dict = interfered_packet[0]
