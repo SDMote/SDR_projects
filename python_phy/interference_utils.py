@@ -89,7 +89,7 @@ def subtract_interference_wrapper(
     affected: np.ndarray,
     interference: np.ndarray,
     fs: float,
-    freq_offsets: list[float],
+    freq_offsets: list[float] | range,
     amplitude: float = None,
     phase: float = None,
     samples_shift: int = None,
@@ -116,7 +116,7 @@ def subtract_interference_wrapper(
 
 # Estimate best frequency offset, amplitude, phase and sample shift to subtract from affected packet.
 def find_interference_parameters(
-    affected: np.ndarray, interference: np.ndarray, freq_offsets: list[float], fs: float
+    affected: np.ndarray, interference: np.ndarray, freq_offsets: list[float] | range, fs: float
 ) -> tuple[float, float, float, int]:
     """Estimate best frequency offset, amplitude, phase and sample shift to subtract from affected packet."""
     best_amplitude = -1.0
