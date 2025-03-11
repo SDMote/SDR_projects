@@ -164,12 +164,13 @@ def compute_ber_vs_frequency(
         )
         # Demodulate subtracted IQ data
         bit_samples = receiver.demodulate(subtracted)
-        interfered_packet: list[dict] = receiver.process_phy_packet(
-            bit_samples
-        )  # Assume BLE receiver (TODO: change hardcoding)
+        interfered_packet: list[dict] = receiver.process_phy_packet(bit_samples)
         if interfered_packet:
             interfered_packet: dict = interfered_packet[0]
             bit2bit_difference = compare_bits_with_reference(interfered_packet["payload"], reference_packet["payload"])
+            if bit2bit_difference is None:  # Payload sizes don't match. Probably due to interference in the preamble
+                bit_error_rates[index] = np.nan
+                continue
             ber = sum(bit2bit_difference) / len(bit2bit_difference) * 100
 
             bit_error_rates[index] = ber

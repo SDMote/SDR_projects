@@ -31,8 +31,6 @@ def main(affected, interference):
 
     # Hardcoded filenames for now
     if affected == "ble":
-        # For now assume BLE 1 Mb/s. TODO: consider BLE 2 Mb/s
-        transmission_rate = 1e6  # BLE 1 Mb/s
         reference_filename = "BLE_0dBm.dat"
         if interference == "802154":
             affected_filename = "BLE_802154_0dBm_8dBm_0MHz.dat"
@@ -44,7 +42,6 @@ def main(affected, interference):
             click.echo("Unsupported interference for affected 'ble'.")
             return
     elif affected == "802154":
-        transmission_rate = 2e6  # IEEE 802.15.4 2 Mchip/s
         reference_filename = "802154_0dBm.dat"
         if interference == "ble":
             affected_filename = "802154_BLE_0dBm_8dBm_0MHz.dat"
@@ -81,8 +78,9 @@ def main(affected, interference):
     iq_interference = read_iq_data(f"{relative_path}{interference_filename}")
 
     """Subtract the known interference and demodulate (blind analysis)"""
+    freq_range = range(0, 12000, 20)
     subtracted = subtract_interference_wrapper(
-        affected=iq_affected, interference=iq_interference, fs=fs, freq_offsets=range(0, 15000, 10), verbose=True
+        affected=iq_affected, interference=iq_interference, fs=fs, freq_offsets=freq_range, verbose=True
     )
     subplots_iq(
         [iq_affected, iq_interference, subtracted], fs, ["Interfered packet", "Interference", "Subtracted"], show=False
@@ -94,7 +92,18 @@ def main(affected, interference):
     if reference_packet:
         reference_packet: dict = reference_packet[0]
         plot_payload(reference_packet)
-        plt.show()
+
+    """BER analysis with frequency variations (non-blind analysis)"""
+    bit_error_rates = compute_ber_vs_frequency(
+        freq_range,
+        affected=iq_affected,
+        interference=iq_interference,
+        fs=fs,
+        reference_packet=reference_packet,
+        receiver=affected_receiver,
+    )
+    plot_ber_vs_frequency_offset(freq_range, bit_error_rates, show=False)
+    plt.show()
 
 
 if __name__ == "__main__":
