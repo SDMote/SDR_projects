@@ -93,11 +93,17 @@ def subtract_interference_wrapper(
     amplitude: float = None,
     phase: float = None,
     samples_shift: int = None,
+    verbose: bool = False,
 ) -> np.ndarray:
     """Subtract a known interference from an affected packet."""
     est_frequency, est_amplitude, est_phase, est_samples_shift = find_interference_parameters(
         affected, interference, freq_offsets, fs
     )
+    if verbose:
+        print(f"{est_frequency = } [Hz]")
+        print(f"{est_amplitude = :.2f} [-]")
+        print(f"{est_phase = :.2f} [rad]")
+        print(f"{est_samples_shift = } [samples]")
     # Update parameters if not defined
     amplitude, phase, samples_shift = map(
         lambda old, new: new if old is None else old,

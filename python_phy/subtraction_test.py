@@ -59,22 +59,42 @@ def main(affected, interference):
         click.echo("Unsupported value for 'affected'.")
         return
 
+    """Opem reference packet (for BER comparison)"""
     # Hardcoded parameters for now
     fs: int | float = 10e6  # Hz
     decimation: int = 1
+    relative_path: str = "../capture_nRF/data/new/"
 
     # Open file, demodulate and get reference packet
-    iq_samples = read_iq_data(f"../capture_nRF/data/new/{reference_filename}")
+    iq_reference = read_iq_data(f"{relative_path}{reference_filename}")
     if affected == "ble":
         affected_receiver = ReceiverBLE(fs=fs, decimation=decimation)
     else:
         affected_receiver = Receiver802154(fs=fs, decimation=decimation)
 
-    bit_samples = affected_receiver.demodulate(iq_samples)  # From IQ samples to hard decisions
+    bit_samples = affected_receiver.demodulate(iq_reference)  # From IQ samples to hard decisions
     reference_packet: list[dict] = affected_receiver.process_phy_packet(bit_samples)  # From hard decisions to packets
     reference_packet: dict = reference_packet[0]
-    plot_payload(reference_packet)
-    plt.show()
+
+    """Open affected and interference files"""
+    iq_affected = read_iq_data(f"{relative_path}{affected_filename}")
+    iq_interference = read_iq_data(f"{relative_path}{interference_filename}")
+
+    """Subtract the known interference and demodulate (blind analysis)"""
+    subtracted = subtract_interference_wrapper(
+        affected=iq_affected, interference=iq_interference, fs=fs, freq_offsets=range(0, 15000, 10), verbose=True
+    )
+    subplots_iq(
+        [iq_affected, iq_interference, subtracted], fs, ["Interfered packet", "Interference", "Subtracted"], show=False
+    )
+
+    # Initialise the receiver and process data
+    bit_samples = affected_receiver.demodulate(subtracted)  # From IQ samples to hard decisions
+    reference_packet: list[dict] = affected_receiver.process_phy_packet(bit_samples)  # From hard decisions to packets
+    if reference_packet:
+        reference_packet: dict = reference_packet[0]
+        plot_payload(reference_packet)
+        plt.show()
 
 
 if __name__ == "__main__":
