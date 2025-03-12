@@ -49,3 +49,30 @@ def single_pole_iir_filter(x, alpha) -> np.ndarray:
     b = [alpha]  # numerator coefficients
     a = [1, -(1 - alpha)]  # denominator coefficients
     return scipy.signal.lfilter(b, a, x)
+
+
+# Generate Gaussian FIR filter taps
+def gaussian_fir_taps(sps: int, ntaps: int, bt: float, gain: float = 1.0) -> np.ndarray:
+    """Generate Gaussian FIR filter taps"""
+    # Scaling factor for time based on BT (bandwidth-bit period product)
+    t_scale: float = np.sqrt(np.log(2.0)) / (2 * np.pi * bt)
+
+    # Symmetric time indices around zero
+    t = np.linspace(-(ntaps - 1) / 2, (ntaps - 1) / 2, ntaps)
+
+    taps = np.exp(-((t / (sps * t_scale)) ** 2) / 2)  # Gaussian function
+    return gain * taps / np.sum(taps)  # Normalise and apply gain
+
+
+# Modulates a bit sequence by FIR filtering
+def modulate_bits_fir(bits: np.ndarray, fir_taps: np.ndarray, sps: int) -> np.ndarray:
+    """Modulates a bit sequence by
+    1. Upsampling according to samples per symbol (sps).
+    2. Filtering with an FIR filter defined by the FIR taps (fir_taps).
+    """
+    # Upsample with zeros
+    upsampled_bits = np.zeros(len(bits) * sps)
+    upsampled_bits[::sps] = bits * 2 - 1  # (-1 to 1)
+
+    # Apply FIR filtering and crop at the end (sps - 1) samples
+    return scipy.signal.convolve(upsampled_bits, fir_taps, mode="full")[: -sps + 1]
