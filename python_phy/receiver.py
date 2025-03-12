@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from demodulation import symbol_sync, frequency_demodulate, binary_slicer
+from demodulation import symbol_sync, demodulate_frequency, binary_slicer
 from filters import single_pole_iir_filter, decimating_fir_filter, simple_squelch
 from packet_utils import (
     correlate_access_code,
@@ -51,7 +51,7 @@ class ReceiverBLE:
         iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
 
         # Quadrature demodulation
-        freq_samples = frequency_demodulate(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
+        freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
 
         # Matched filter
         # TODO, something like the following
@@ -59,7 +59,7 @@ class ReceiverBLE:
         # matched_filter_taps /= np.max(matched_filter_taps)
         # matched = fir_filter(freq_samples, matched_filter_taps)
 
-        ## Symbol synchronisation
+        # Symbol synchronisation
         bit_samples = symbol_sync(freq_samples, sps=self.sps)
         bit_samples = binary_slicer(bit_samples)
 
@@ -167,7 +167,7 @@ class Receiver802154:
         iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
 
         # Quadrature demodulation
-        freq_samples = frequency_demodulate(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
+        freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
         freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
         # Matched filter
@@ -176,7 +176,7 @@ class Receiver802154:
         # matched_filter_taps /= np.max(matched_filter_taps)
         # matched = fir_filter(freq_samples, matched_filter_taps)
 
-        ## Symbol synchronisation
+        # Symbol synchronisation
         bit_samples = symbol_sync(freq_samples, sps=self.sps)
         bit_samples = binary_slicer(bit_samples)
         return bit_samples

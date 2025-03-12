@@ -3,7 +3,7 @@ import numpy as np
 
 
 # Computes instantaneous frequency of a complex IQ signal
-def frequency_demodulate(iq_samples: np.ndarray, gain: float | int = 1) -> np.ndarray:
+def demodulate_frequency(iq_samples: np.ndarray, gain: float | int = 1) -> np.ndarray:
     """Computes instantaneous frequency of a complex IQ signal."""
     return np.diff(np.unwrap(np.angle(iq_samples))) * gain
 

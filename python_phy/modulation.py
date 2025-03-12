@@ -3,7 +3,7 @@ import scipy
 
 
 # Modulates a bit sequence by FIR filtering
-def modulate_bits_fir(bits: np.ndarray, fir_taps: np.ndarray, sps: int) -> np.ndarray:
+def pulse_shape_bits_fir(bits: np.ndarray, fir_taps: np.ndarray, sps: int) -> np.ndarray:
     """Modulates a bit sequence by
     1. Upsampling according to samples per symbol (sps).
     2. Filtering with an FIR filter defined by the FIR taps (fir_taps).
@@ -17,7 +17,7 @@ def modulate_bits_fir(bits: np.ndarray, fir_taps: np.ndarray, sps: int) -> np.nd
 
 
 # Modulates in frequency a real array of symbols. Outputs IQ complex signal
-def frequency_modulate(symbols: np.ndarray, fsk_deviation: float, fs: float) -> np.ndarray:
+def modulate_frequency(symbols: np.ndarray, fsk_deviation: float, fs: float) -> np.ndarray:
     """Modulates in frequency a real array of symbols. Outputs IQ complex signal."""
     # fsk_deviation: a value of 1 in symbols maps to a frequency of fsk_deviation
     # Compute the phase increment per sample based on fsk_deviation

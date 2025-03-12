@@ -219,7 +219,7 @@ def create_ble_phy_packet(payload: np.ndarray, base_address: int) -> np.ndarray:
     crc = compute_crc(ready_for_crc, crc_init=0x00FFFF, crc_poly=0x00065B, crc_size=3)
     ready_for_whitening = np.concatenate((ready_for_crc, crc))
 
-    # Whiten from S0 to CRC
+    # Whiten from S0 (included) to CRC (included)
     whitened, _ = ble_whitening(ready_for_whitening)
     packet = np.concatenate(([preamble], base_addr_bytes, [prefix], whitened))
 
