@@ -10,7 +10,7 @@ def modulate_bits_fir(bits: np.ndarray, fir_taps: np.ndarray, sps: int) -> np.nd
     """
     # Upsample with zeros
     upsampled_bits = np.zeros(len(bits) * sps)
-    upsampled_bits[::sps] = bits * 2 - 1  # (-1 to 1)
+    upsampled_bits[::sps] = bits.astype(np.int16) * 2 - 1  # (-1 to 1)
 
     # Apply FIR filtering and crop at the end (sps - 1) samples
     return scipy.signal.convolve(upsampled_bits, fir_taps, mode="full")[: -sps + 1]
