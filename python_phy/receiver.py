@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from demodulation import symbol_sync, quadrature_demod, binary_slicer
+from demodulation import symbol_sync, frequency_demodulate, binary_slicer
 from filters import single_pole_iir_filter, decimating_fir_filter, simple_squelch
 from packet_utils import (
     correlate_access_code,
@@ -51,7 +51,7 @@ class ReceiverBLE:
         iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
 
         # Quadrature demodulation
-        freq_samples = quadrature_demod(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
+        freq_samples = frequency_demodulate(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
 
         # Matched filter
         # TODO, something like the following
@@ -95,7 +95,7 @@ class ReceiverBLE:
             computed_crc = compute_crc(header_and_payload, crc_init=0x00FFFF, crc_poly=0x00065B, crc_size=self.crc_size)
             crc_check = True if (computed_crc == payload_and_crc[-self.crc_size :]).all() else False
             # print(f"{header_and_payload = }")
-            # print(f"{crc_check = }")
+            # print(f"{computed_crc = }")
 
             payload = header_and_payload[2:]  # Remove CRC bytes
 
@@ -167,7 +167,7 @@ class Receiver802154:
         iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
 
         # Quadrature demodulation
-        freq_samples = quadrature_demod(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
+        freq_samples = frequency_demodulate(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
         freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
         # Matched filter
