@@ -56,7 +56,7 @@ def ble_whitening(data: np.ndarray, lfsr=0x01, polynomial=0x11):
                 lfsr = (lfsr << 1) ^ polynomial  # XOR with predefined polynomial
             else:
                 lfsr <<= 1
-            lfsr &= 0x7F  # 0x7F mask to keep ksfr within 7 bits
+            lfsr &= 0x7F  # 0x7F mask to keep lsfr within 7 bits
 
         output[idx] = whitened_byte
 

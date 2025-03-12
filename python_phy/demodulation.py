@@ -50,7 +50,8 @@ def symbol_sync(
         [],
     )
 
-    sink = blocks.vector_sink_f(1, 1024 * 4)  # Sink to collect the output
+    # Sink to collect the output
+    sink = blocks.vector_sink_f(1, 1024 * 4)
 
     # Connect blocks and run
     tb = gr.top_block()
