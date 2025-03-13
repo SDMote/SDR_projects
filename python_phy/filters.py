@@ -49,3 +49,16 @@ def single_pole_iir_filter(x, alpha) -> np.ndarray:
     b = [alpha]  # numerator coefficients
     a = [1, -(1 - alpha)]  # denominator coefficients
     return scipy.signal.lfilter(b, a, x)
+
+
+# Generate Gaussian FIR filter taps
+def gaussian_fir_taps(sps: int, ntaps: int, bt: float, gain: float = 1.0) -> np.ndarray:
+    """Generate Gaussian FIR filter taps"""
+    # Scaling factor for time based on BT (bandwidth-bit period product)
+    t_scale: float = np.sqrt(np.log(2.0)) / (2 * np.pi * bt)
+
+    # Symmetric time indices around zero
+    t = np.linspace(-(ntaps - 1) / 2, (ntaps - 1) / 2, ntaps)
+
+    taps = np.exp(-((t / (sps * t_scale)) ** 2) / 2)  # Gaussian function
+    return gain * taps / np.sum(taps)  # Normalise and apply gain

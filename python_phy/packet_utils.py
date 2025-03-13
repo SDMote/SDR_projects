@@ -56,7 +56,7 @@ def ble_whitening(data: np.ndarray, lfsr=0x01, polynomial=0x11):
                 lfsr = (lfsr << 1) ^ polynomial  # XOR with predefined polynomial
             else:
                 lfsr <<= 1
-            lfsr &= 0x7F  # 0x7F mask to keep ksfr within 7 bits
+            lfsr &= 0x7F  # 0x7F mask to keep lsfr within 7 bits
 
         output[idx] = whitened_byte
 
@@ -109,8 +109,8 @@ def compute_crc(data: np.ndarray, crc_init: int = 0x00FFFF, crc_poly: int = 0x00
 def generate_access_code_ble(base_address: int) -> str:
     """Generates (preamble + base address sequence) to use as access code."""
     base_address &= 0xFFFFFFFF  # 4-byte unsigned long
-    preamble = 0xAA if base_address & 0x01 else 0x55
-    preamble = format(preamble, "08b")
+    preamble = 0x55 if base_address & 0x01 else 0xAA
+    preamble = format(preamble, "08b")[::-1]
 
     base_address = base_address.to_bytes(4, byteorder="little")
     base_address = [format(byte, "08b")[::-1] for byte in base_address]
@@ -185,3 +185,51 @@ def chips_to_int(chips: np.ndarray) -> int:
     """Convert a 32-length binary array to an integer."""
     assert len(chips) == 32, "Input must be exactly 32 elements long"
     return int("".join(map(str, chips)), 2)
+
+
+# Create a physical BLE packet from payload and base address.
+def create_ble_phy_packet(payload: np.ndarray, base_address: int) -> np.ndarray:
+    """
+    Create a physical BLE packet from payload and base address.
+
+    Packet Structure:
+    ┌───────────┬──────────────┬───────────────┬───────────┬────────┬────────┬─────────┐
+    │ Preamble  │ Base Address │ Prefix (0x00) │ S0 (0x00) │ Length │ PDU    │ CRC     │
+    ├───────────┼──────────────┼───────────────┼───────────┼────────┼────────┼─────────┤
+    │ 0xAA/0x55 │ 4 bytes      │ 1 byte        │ 1 byte    │ 1 byte │ 0-255B │ 3 bytes │
+    └───────────┴──────────────┴───────────────┴───────────┴────────┴────────┴─────────┘
+    """
+    # Set the preamble based on the LSB of the base address
+    preamble = np.uint8(0x55 if (base_address & 0x01) else 0xAA)
+
+    # Convert base address into 4 bytes in little-endian order
+    base_addr_len = 4
+    base_addr_bytes = np.array(
+        [np.uint8((base_address >> (i * 8)) & 0xFF) for i in range(base_addr_len)],
+        dtype=np.uint8,
+    )
+
+    # Set prefix, S0 and length bytes
+    prefix = np.uint8(0x00)
+    s0 = np.uint8(0x00)
+    length = np.uint8(len(payload))
+
+    # Append CRC
+    ready_for_crc = np.concatenate(([s0, length], payload))
+    crc = compute_crc(ready_for_crc, crc_init=0x00FFFF, crc_poly=0x00065B, crc_size=3)
+    ready_for_whitening = np.concatenate((ready_for_crc, crc))
+
+    # Whiten from S0 (included) to CRC (included)
+    whitened, _ = ble_whitening(ready_for_whitening)
+    packet = np.concatenate(([preamble], base_addr_bytes, [prefix], whitened))
+
+    return packet
+
+
+# Unpack an array of bytes (np.uint8) into an array of bits, LSB first
+def unpack_uint8_to_bits(uint8_array: np.ndarray) -> np.ndarray:
+    """Unpack an array of bytes (np.uint8) into an array of bits, LSB first"""
+    # Unpack bits from each byte into a matrix where each row is the binary representation
+    bits = np.unpackbits(uint8_array).reshape(-1, 8)
+    bits = bits[:, ::-1]  # LSB first as sent on air
+    return bits.flatten()

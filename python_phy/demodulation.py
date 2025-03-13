@@ -3,7 +3,7 @@ import numpy as np
 
 
 # Computes instantaneous frequency of a complex IQ signal
-def quadrature_demod(iq_samples: np.ndarray, gain: float | int = 1) -> np.ndarray:
+def demodulate_frequency(iq_samples: np.ndarray, gain: float | int = 1) -> np.ndarray:
     """Computes instantaneous frequency of a complex IQ signal."""
     return np.diff(np.unwrap(np.angle(iq_samples))) * gain
 
@@ -50,7 +50,8 @@ def symbol_sync(
         [],
     )
 
-    sink = blocks.vector_sink_f(1, 1024 * 4)  # Sink to collect the output
+    # Sink to collect the output
+    sink = blocks.vector_sink_f(1, 1024 * 4)
 
     # Connect blocks and run
     tb = gr.top_block()
