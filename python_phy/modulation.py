@@ -32,3 +32,21 @@ def modulate_frequency(symbols: np.ndarray, fsk_deviation: float, fs: float) -> 
     # Generate the complex IQ signal as the unit complex exponential of the phase
     iq_signal = np.exp(1j * phase)
     return iq_signal
+
+
+# Generate Gaussian FIR filter taps
+def gaussian_fir_taps(sps: int, ntaps: int, bt: float, gain: float = 1.0) -> np.ndarray:
+    """Generate Gaussian FIR filter taps"""
+    # Scaling factor for time based on BT (bandwidth-bit period product)
+    t_scale: float = np.sqrt(np.log(2.0)) / (2 * np.pi * bt)
+
+    # Symmetric time indices around zero
+    t = np.linspace(-(ntaps - 1) / 2, (ntaps - 1) / 2, ntaps)
+
+    taps = np.exp(-((t / (sps * t_scale)) ** 2) / 2)  # Gaussian function
+    return gain * taps / np.sum(taps)  # Normalise and apply gain
+
+
+# Generate half-sine pulse FIR filter taps
+def half_sine_fir_taps(sps: int) -> np.ndarray:
+    return np.sin(np.linspace(0, np.pi, sps + 1))

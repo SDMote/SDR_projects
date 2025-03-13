@@ -1,8 +1,7 @@
 import numpy as np
 import scipy
 
-from modulation import modulate_frequency, pulse_shape_bits_fir
-from filters import gaussian_fir_taps
+from modulation import modulate_frequency, pulse_shape_bits_fir, gaussian_fir_taps
 from packet_utils import create_ble_phy_packet, unpack_uint8_to_bits
 
 

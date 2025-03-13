@@ -51,14 +51,31 @@ def single_pole_iir_filter(x, alpha) -> np.ndarray:
     return scipy.signal.lfilter(b, a, x)
 
 
-# Generate Gaussian FIR filter taps
-def gaussian_fir_taps(sps: int, ntaps: int, bt: float, gain: float = 1.0) -> np.ndarray:
-    """Generate Gaussian FIR filter taps"""
-    # Scaling factor for time based on BT (bandwidth-bit period product)
-    t_scale: float = np.sqrt(np.log(2.0)) / (2 * np.pi * bt)
+# Applies a delay to the input data by first applying a fractional delay using an FIR filter,
+# and then applying an integer delay via sample shifting with zero-padding.
+def fractional_delay_fir_filter(data: np.ndarray, delay: float, num_taps: int = 21) -> np.ndarray:
+    """
+    Applies a delay to the input data by first applying a fractional delay using an FIR filter,
+    and then applying an integer delay via sample shifting with zero-padding.
+    """
+    # Separate delay into its integer and fractional parts
+    integer_delay = int(np.floor(delay))
+    fractional_delay = delay - integer_delay
 
-    # Symmetric time indices around zero
-    t = np.linspace(-(ntaps - 1) / 2, (ntaps - 1) / 2, ntaps)
+    # Build the FIR filter taps for the fractional delay
+    n = np.arange(-num_taps // 2, num_taps // 2)  # ...-3,-2,-1,0,1,2,3...
+    fir_kernel = np.sinc(n - fractional_delay)  # Shifted sinc function
+    # fir_kernel *= np.hamming(len(n))  # Hamming window (avoid spectral leakage)
+    fir_kernel /= np.sum(fir_kernel)  # Normalise filter taps, unity gain
+    frac_delayed = scipy.signal.convolve(data, fir_kernel, mode="full")  # Apply filter
 
-    taps = np.exp(-((t / (sps * t_scale)) ** 2) / 2)  # Gaussian function
-    return gain * taps / np.sum(taps)  # Normalise and apply gain
+    # Compensate for the intrinsic delay caused by convolution
+    frac_delayed = np.roll(frac_delayed, -num_taps // 2)
+    frac_delayed = frac_delayed[: len(data)]
+
+    # Integer delay and pad with zeros
+    delayed_output = np.zeros_like(frac_delayed)
+    if integer_delay < len(frac_delayed):
+        delayed_output[integer_delay:] = frac_delayed[: len(frac_delayed) - integer_delay]
+
+    return delayed_output
