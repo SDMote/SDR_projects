@@ -120,15 +120,21 @@ def generate_access_code_ble(base_address: int) -> str:
 
 
 # Returns a string of chips to be used by correlate access code function
-def map_nibbles_to_chips(byte_array: list[int], chip_mapping: np.ndarray) -> str:
+def map_nibbles_to_chips(
+    byte_array: np.ndarray, chip_mapping: np.ndarray, return_string: bool = True
+) -> str | np.ndarray:
     """Returns a string of chips to be used by correlate access code function."""
     result = []
     for byte in byte_array:
         for nibble in [byte & 0x0F, (byte >> 4) & 0x0F]:  # Extract LSB first, then MSB
             mapped_value = chip_mapping[nibble]
-            binary_string = f"{mapped_value:032b}"  # Convert to 32-bit binary
-            result.append(binary_string)  # Append delimiter
-    return "_".join(result)
+            if return_string:
+                binary_string = f"{mapped_value:032b}"  # Convert to 32-bit binary
+                result.append(binary_string)  # Append delimiter
+            else:
+                result.append(mapped_value)  # Append uint32 chip value
+
+    return "_".join(result) if return_string else np.array(result, dtype=np.uint32)
 
 
 # Return the number of set bits in the lowest 'bits' of 'n'.
@@ -287,3 +293,25 @@ def unpack_uint8_to_bits(uint8_array: np.ndarray) -> np.ndarray:
     bits = np.unpackbits(uint8_array).reshape(-1, 8)
     bits = bits[:, ::-1]  # LSB first as sent on air
     return bits.flatten()
+
+
+# Maps a the even and odd chips in a uint32 input array to I chips and Q chips respectively.
+def split_iq_chips(uint32_chips: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Maps a the even and odd chips in a uint32 input array to I chips and Q chips respectively."""
+    # Preallocate output arrays
+    total_bits = uint32_chips.size * 32
+    I_chips = np.empty(total_bits // 2, dtype=np.uint8)
+    Q_chips = np.empty(total_bits // 2, dtype=np.uint8)
+
+    index = 0
+    for value in uint32_chips:
+        # Convert each uint32 to a numpy array of 1s and 0s
+        bits = np.array([(value >> i) & 1 for i in range(31, -1, -1)], dtype=np.uint8)
+
+        # Even-indexed chips go to I_chips, odd-indexed bits to Q_chips
+        I_chips[index : index + 16] = bits[::2]
+        Q_chips[index : index + 16] = bits[1::2]
+
+        index += 16  # Increase return index for each value in uint32_array
+
+    return I_chips, Q_chips

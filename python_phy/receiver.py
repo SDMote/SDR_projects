@@ -114,6 +114,7 @@ class Receiver802154:
     crc_size: int = 2  # 2 bytes CRC for IEEE 802.15.4
     max_packet_len: int = 127
 
+    # Chip mapping for differential MSK encoding
     chip_mapping: np.ndarray = np.array(
         [
             0xE077AE6C,  # 0
