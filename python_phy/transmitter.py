@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy
 
 from modulation import modulate_frequency, pulse_shape_bits_fir
@@ -9,10 +8,9 @@ from packet_utils import create_ble_phy_packet, unpack_uint8_to_bits
 
 class TransmitterBLE:
     # Class variables
-    transmission_rate = 1e6  # BLE 1 Mb/s
+    transmission_rate: float = 1e6  # BLE 1 Mb/s
     fsk_deviation_ble: float = 250e3  # Hz
-    crc_size: int = 3  # 3 bytes CRC for BLE
-    bt = 0.5  # Bandwidth-bit period product for Gaussian pulse shaping
+    bt: float = 0.5  # Bandwidth-bit period product for Gaussian pulse shaping
 
     def __init__(self, fs: int | float):
         # Instance variables
