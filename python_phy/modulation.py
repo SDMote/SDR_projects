@@ -50,3 +50,30 @@ def gaussian_fir_taps(sps: int, ntaps: int, bt: float, gain: float = 1.0) -> np.
 # Generate half-sine pulse FIR filter taps
 def half_sine_fir_taps(sps: int) -> np.ndarray:
     return np.sin(np.linspace(0, np.pi, sps + 1))
+
+
+# Modulate input I_chips and Q_chips in quadrature, with half a symbol offset.
+def oqpsk_modulate(I_chips: np.ndarray, Q_chips: np.ndarray, fir_taps: np.ndarray, sps: int) -> np.ndarray:
+    from filters import fractional_delay_fir_filter
+
+    """Modulate input I_chips and Q_chips in quadrature, with half a symbol offset."""
+    assert I_chips.shape == Q_chips.shape, "I_chips and Q_chips must have the same size"
+
+    # Apply pulse shaping (FIR filtering)
+    # Concatenating a 0 at the beginning and end for boundary conditions
+    # (first chip and last chip must be in the unit circle)
+    hss_I_chips = pulse_shape_bits_fir(np.concatenate((I_chips, [0])), fir_taps=fir_taps, sps=sps)
+    hss_Q_chips = pulse_shape_bits_fir(np.concatenate(([0], Q_chips)), fir_taps=fir_taps, sps=sps)
+
+    # Apply half-symbol offset to Quadrature component
+    hss_I_chips = fractional_delay_fir_filter(hss_I_chips, sps / 2, same_size=False)
+    hss_Q_chips = np.pad(hss_Q_chips, (0, len(hss_I_chips) - len(hss_Q_chips)), mode="constant")
+
+    # Pack into complex array
+    iq_signal = hss_I_chips + 1j * hss_Q_chips
+
+    # Crop remainders resulting from concatenating
+    iq_signal = iq_signal[sps // 2 :]
+    iq_signal = iq_signal[: len(I_chips) * sps + int(np.ceil(sps / 2)) + 1]  # Magic expression found by inspection
+
+    return iq_signal
