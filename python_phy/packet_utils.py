@@ -234,6 +234,52 @@ def create_ble_phy_packet(payload: np.ndarray, base_address: int) -> np.ndarray:
     return packet
 
 
+# Create a physical IEEE 802.15.4 packet from payload. CRC is optional.
+def create_802154_phy_packet(payload: np.ndarray, append_crc: bool) -> np.ndarray:
+    """
+    Create a physical IEEE 802.15.4 packet from payload. CRC is optional.
+
+    Packet Structure:
+    ┌──────────────────────────────┬────────┬───────────────────────────┬────────────────┐
+    │ Preamble sequence            │ Length │ PDU                       | CRC (optional) │
+    ├──────────────────────────────┼────────┼───────────────────────────┼────────────────┤
+    │ 0x00, 0x00, 0x00, 0x00, 0xA7 │ 1 Byte │ 0-125B/127B (CRC / no CRC)│ 2 Bytes        │
+    └──────────────────────────────┴────────┴───────────────────────────┴────────────────┘
+    """
+    crc_size = 2
+    max_payload_size = 5  # Bytes
+    max_payload_size_with_crc = max_payload_size - crc_size  # Bytes
+
+    # Set the preamble
+    preamble = np.array([0x00, 0x00, 0x00, 0x00, 0xA7], dtype=np.uint8)
+
+    # Adjust payload size based on CRC inclusion
+    if append_crc:
+        if len(payload) > max_payload_size_with_crc:
+            payload = payload[:max_payload_size_with_crc]
+            print(
+                f"Warning: create_802154_phy_packet() - Payload exceeded {max_payload_size_with_crc}B (CRC enabled) and has been cropped."
+            )
+        # Set length byte and CRC
+        length = np.uint8(len(payload) + crc_size)
+        crc = compute_crc(payload, crc_init=0x0000, crc_poly=0x011021, crc_size=crc_size)
+
+        # Assemble packet
+        packet = np.concatenate((preamble, [length], payload, crc))
+
+    else:
+        if len(payload) > max_payload_size:
+            payload = payload[:max_payload_size]
+            print(f"Warning: create_802154_phy_packet() - Payload exceeded {max_payload_size}B and has been cropped.")
+        # Set length byte
+        length = np.uint8(len(payload))
+
+        # Assemble packet
+        packet = np.concatenate((preamble, [length], payload))
+
+    return packet
+
+
 # Unpack an array of bytes (np.uint8) into an array of bits, LSB first
 def unpack_uint8_to_bits(uint8_array: np.ndarray) -> np.ndarray:
     """Unpack an array of bytes (np.uint8) into an array of bits, LSB first"""
