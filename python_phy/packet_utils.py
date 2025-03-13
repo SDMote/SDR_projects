@@ -196,9 +196,17 @@ def create_ble_phy_packet(payload: np.ndarray, base_address: int) -> np.ndarray:
     ┌───────────┬──────────────┬───────────────┬───────────┬────────┬────────┬─────────┐
     │ Preamble  │ Base Address │ Prefix (0x00) │ S0 (0x00) │ Length │ PDU    │ CRC     │
     ├───────────┼──────────────┼───────────────┼───────────┼────────┼────────┼─────────┤
-    │ 0xAA/0x55 │ 4 bytes      │ 1 byte        │ 1 byte    │ 1 byte │ 0-255B │ 3 bytes │
+    │ 0xAA/0x55 │ 4 Bytes      │ 1 Byte        │ 1 Byte    │ 1 Byte │ 0-255B │ 3 Bytes │
     └───────────┴──────────────┴───────────────┴───────────┴────────┴────────┴─────────┘
     """
+    max_payload_size: int = 255  # Bytes
+    # Crop the payload if it exceeds the maximum allowed size
+    if len(payload) > max_payload_size:
+        payload = payload[:max_payload_size]
+        print(
+            f"Warning: create_ble_phy_packet() - Payload exceeded the maximum allowed size ({max_payload_size}B) and has been cropped."
+        )
+
     # Set the preamble based on the LSB of the base address
     preamble = np.uint8(0x55 if (base_address & 0x01) else 0xAA)
 
