@@ -51,3 +51,16 @@ class TransmitterBLE:
         bits_packet = unpack_uint8_to_bits(byte_packet)
 
         return bits_packet
+
+
+class Transmitter802154:
+    # Class variables
+    transmission_rate: float = 2e6  # 2 Mchip/s
+    max_payload_size: int = 127
+
+    def __init__(self, fs: int | float):
+        # Instance variables
+        self.fs = fs  # Sampling rate
+        # For now, assume sampling rate is an integer multiple of transmission rate.
+        # For generalisation, it's necessary to implement a rational resampler to generate the final IQ signal.
+        self.spc: int = int(self.fs / self.transmission_rate)  # Samples per chip
