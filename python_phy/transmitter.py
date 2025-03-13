@@ -22,7 +22,7 @@ class TransmitterBLE:
         self.sps: int = int(self.fs / self.transmission_rate)  # Samples per symbol
 
     # Receives a binary array and returns IQ GFSK modulated compplex signal.
-    def modulate(self, bits: np.ndarray, zero_padding=None) -> np.ndarray:
+    def modulate(self, bits: np.ndarray, zero_padding: int = 0) -> np.ndarray:
         """Receives a binary array and returns IQ GFSK modulated compplex signal."""
 
         # Generate Gaussian taps and convolve with rectangular window
