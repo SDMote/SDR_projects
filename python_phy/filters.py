@@ -53,7 +53,9 @@ def single_pole_iir_filter(x, alpha) -> np.ndarray:
 
 # Applies a delay to the input data by first applying a fractional delay using an FIR filter,
 # and then applying an integer delay via sample shifting with zero-padding.
-def fractional_delay_fir_filter(data: np.ndarray, delay: float, num_taps: int = 21) -> np.ndarray:
+def fractional_delay_fir_filter(
+    data: np.ndarray, delay: float, num_taps: int = 21, same_size: bool = True
+) -> np.ndarray:
     """
     Applies a delay to the input data by first applying a fractional delay using an FIR filter,
     and then applying an integer delay via sample shifting with zero-padding.
@@ -71,7 +73,10 @@ def fractional_delay_fir_filter(data: np.ndarray, delay: float, num_taps: int = 
 
     # Compensate for the intrinsic delay caused by convolution
     frac_delayed = np.roll(frac_delayed, -num_taps // 2)
-    frac_delayed = frac_delayed[: len(data)]
+    if same_size:
+        frac_delayed = frac_delayed[: len(data)]
+    else:
+        frac_delayed = frac_delayed[: len(data) + num_taps // 2]
 
     # Integer delay and pad with zeros
     delayed_output = np.zeros_like(frac_delayed)
