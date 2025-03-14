@@ -59,7 +59,7 @@ def plot_spectrogram(ax, data: np.ndarray, fs: float | int, fLO: float | int = 0
 
 # Hardcoded subplots of time domain and spectrogram
 # TODO parametrise
-def subplots_iq_spectrogra_bits(data, fs, fLO=0, show=True) -> None:
+def subplots_iq_spectrogram_bits(data, fs, fLO=0, show=True) -> None:
     fig, axes = plt.subplots(3, 1, figsize=(10, 6))
     plot_time(
         axes[0], [np.real(data[0]), np.imag(data[0])], fs, ["I (In-phase)", "Q (Quadrature)"], "IQ Data", time=False

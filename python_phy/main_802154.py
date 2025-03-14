@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from data_io import read_iq_data
 from filters import simple_squelch, decimating_fir_filter, add_awgn
-from visualisation import subplots_iq_spectrogra_bits, plot_payload
+from visualisation import subplots_iq_spectrogram_bits, plot_payload
 from receiver import Receiver802154
 
 
@@ -44,7 +44,7 @@ def main(filename: str, fs: float, decimation: int, crc_included: bool, preamble
     print(received_packets)
 
     # Plot
-    subplots_iq_spectrogra_bits([iq_samples, chip_samples], fs=fs / decimation, show=False)
+    subplots_iq_spectrogram_bits([iq_samples, chip_samples], fs=fs / decimation, show=False)
     if received_packets:
         plot_payload(received_packets[0])
     plt.show()
