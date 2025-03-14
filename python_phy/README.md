@@ -1,6 +1,8 @@
-# BLE & IEEE 802.15.4 Demodulation in Python
+# BLE & IEEE 802.15.4 Modulation/Demodulation in Python
 
-This folder contains Python scripts for demodulating BLE and IEEE 802.15.4 packets from IQ baseband measurements.
+This folder contains Python scripts for demodulating BLE and IEEE 802.15.4 packets from IQ baseband measurements, and modulating from the contents of the physical payload.
+
+It also contains an automated process to estimate the amplitude, phase and time-shift of an assume known interference within a measured IQ packet, and subtract it to recover the affected packet. 
 
 ## Prerequisites
 
@@ -10,7 +12,5 @@ For installation instructions, see: [GNU Radio Wiki](https://wiki.gnuradio.org/i
 
 ## TODO
 
-- Implement controlled interference subtraction (in progress; currently working with a tone).
-- Support intermediate frequency (non-baseband) demodulation.
 - Integrate matched filtering in the demodulation process for improved performance at low SNR.
-- Evaluate demodulation performance under low SNR conditions.
+    - Evaluate demodulation performance under low SNR conditions.
