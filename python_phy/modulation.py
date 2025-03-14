@@ -25,13 +25,9 @@ def modulate_frequency(symbols: np.ndarray, fsk_deviation: float, fs: float) -> 
 
     # Prepending a zero ensures that the signal starts at phase 0
     phase_increments = np.insert(phase_increments, 0, 0)
+    phase: np.ndarray = np.cumsum(phase_increments)  # Integrate the phase increments
 
-    # Integrate the phase increments
-    phase: np.ndarray = np.cumsum(phase_increments)
-
-    # Generate the complex IQ signal as the unit complex exponential of the phase
-    iq_signal = np.exp(1j * phase)
-    return iq_signal
+    return np.exp(1j * phase)  # Return the complex IQ signal
 
 
 # Generate Gaussian FIR filter taps
@@ -40,9 +36,7 @@ def gaussian_fir_taps(sps: int, ntaps: int, bt: float, gain: float = 1.0) -> np.
     # Scaling factor for time based on BT (bandwidth-bit period product)
     t_scale: float = np.sqrt(np.log(2.0)) / (2 * np.pi * bt)
 
-    # Symmetric time indices around zero
-    t = np.linspace(-(ntaps - 1) / 2, (ntaps - 1) / 2, ntaps)
-
+    t = np.linspace(-(ntaps - 1) / 2, (ntaps - 1) / 2, ntaps)  # Symmetric time indices around zero
     taps = np.exp(-((t / (sps * t_scale)) ** 2) / 2)  # Gaussian function
     return gain * taps / np.sum(taps)  # Normalise and apply gain
 
@@ -69,10 +63,8 @@ def oqpsk_modulate(I_chips: np.ndarray, Q_chips: np.ndarray, fir_taps: np.ndarra
     hss_I_chips = fractional_delay_fir_filter(hss_I_chips, sps / 2, same_size=False)
     hss_Q_chips = np.pad(hss_Q_chips, (0, len(hss_I_chips) - len(hss_Q_chips)), mode="constant")
 
-    # Pack into complex array
+    # Pack into complex array and crop remainders resulting from concatenating
     iq_signal = hss_I_chips + 1j * hss_Q_chips
-
-    # Crop remainders resulting from concatenating
     iq_signal = iq_signal[sps // 2 :]
     iq_signal = iq_signal[: len(I_chips) * sps + int(np.ceil(sps / 2)) + 1]  # Magic expression found by inspection
 
