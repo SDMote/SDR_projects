@@ -33,13 +33,15 @@ def fir_filter(data: np.ndarray, taps) -> np.ndarray:
     return scipy.signal.convolve(data, taps, mode="same")
 
 
-# Additive White Gaussian Noise
-def add_awgn(signal: np.ndarray, snr_db) -> np.ndarray:
-    """Additive White Gaussian Noise."""
-    signal_power = np.mean(np.abs(signal) ** 2)
-    snr_linear = 10 ** (snr_db / 10)  # Calculate the noise power based on the SNR (in dB)
-    noise_power = signal_power / snr_linear
-    noise = np.sqrt(noise_power) * np.random.randn(len(signal))
+# Adds white Gaussian noise to a signal (complex or real)
+def add_white_gaussian_noise(signal: np.ndarray, noise_power: float) -> np.ndarray:
+    """# Adds white noise to a signal (complex or real)."""
+    if np.iscomplexobj(signal):
+        noise = np.sqrt(noise_power / 2) * (
+            np.random.normal(0, np.sqrt(2) / 2, len(signal)) + 1j * np.random.normal(0, np.sqrt(2) / 2, len(signal))
+        )
+    else:
+        noise = np.sqrt(noise_power) * np.random.normal(0, np.sqrt(2) / 2, len(signal))
     return signal + noise
 
 

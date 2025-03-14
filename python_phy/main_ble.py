@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from data_io import read_iq_data
-from filters import simple_squelch, decimating_fir_filter, add_awgn
+from filters import add_white_gaussian_noise
 from visualisation import subplots_iq_spectrogram_bits, plot_payload
 from receiver import ReceiverBLE
 
