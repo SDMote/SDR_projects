@@ -26,9 +26,9 @@ def plot_time(
             ax.plot(time_array, np.real(data), label=label)
 
     if time:
-        ax.set_xlabel("Time (µs)")
+        ax.set_xlabel("Time [µs]")
     else:
-        ax.set_xlabel("Samples (-)")
+        ax.set_xlabel("Samples [-]")
     ax.set_ylabel("Amplitude")
     ax.set_xlim(time_array[0], time_array[-1])
     ax.set_title(title)
@@ -107,9 +107,9 @@ def compare_bits_with_reference(payload: np.ndarray, reference_payload: np.ndarr
     return np.unpackbits(error_bits, bitorder="little")  # Unpack to binary representation
 
 
-# Plots IQ data in subplots.
-def subplots_iq(data, fs, titles=None, labels=None, show=True, figsize=(10, 6)) -> None:
-    """Plots IQ data in subplots."""
+# Plots IQ data in vertical subplots.
+def subplots_iq(data: list, fs: float, titles=None, labels=None, show=True, figsize=(10, 6)) -> None:
+    """Plots IQ data in vertical subplots."""
     num_subplots = len(data)
     _, axes = plt.subplots(num_subplots, 1, figsize=figsize)
 
@@ -131,9 +131,72 @@ def plot_ber_vs_frequency_offset(freq_range: range, bit_error_rates: np.ndarray,
     """Plots the Bit Error Rate (BER) against frequency offset."""
     plt.figure(figsize=figsize)
     plt.plot(list(freq_range), bit_error_rates, marker="o", linestyle="-", color="b")
-    plt.xlabel("Frequency offset (Hz)")
-    plt.ylabel("Bit error rate (%)")
+    plt.xlabel("Frequency offset [Hz]")
+    plt.ylabel("Bit error rate [%]")
     plt.title("BER vs Frequency offset")
     plt.grid(True, linestyle="--", alpha=0.7)
     if show:
         plt.show()
+
+
+# Plots periodograms of the input signals with shared axes.
+def plot_periodograms(
+    signals: list[np.ndarray],
+    fs: float = 1.0,
+    titles: list[str] = None,
+    NFFT: int = 1024,
+    noverlap: int = 16,
+    figsize=(12, 5),
+) -> None:
+    """Plots periodograms of the input signals with shared axes."""
+
+    n_signals = len(signals)
+    if titles is None or len(titles) != n_signals:
+        titles = [f"Signal {i+1} Periodogram" for i in range(n_signals)]
+
+    _, axes = plt.subplots(n_signals, 1, figsize=figsize, sharex=True, sharey=True)
+
+    if n_signals == 1:
+        axes = [axes]
+
+    # Plot periodogram for each signal
+    for ax, sig, title in zip(axes, signals, titles):
+        ax.psd(sig, Fs=fs, NFFT=NFFT, noverlap=noverlap, scale_by_freq=False)
+        ax.set_title(title)
+        ax.set_xlabel("Frequency [Hz]")
+
+    axes[0].set_ylabel("Power Spectral Density [dB/Hz]")
+
+    plt.tight_layout()
+    plt.show()
+
+
+# Plots the real and imaginary parts of complex signals over time.
+def plot_complex_time(signals: list[np.ndarray], fs: float = 1.0, titles: list[str] = None, figsize=(12, 5)) -> None:
+    """Plots the real and imaginary parts of complex signals over time."""
+
+    n_signals = len(signals)
+    t = 10e6 * np.arange(len(signals[0])) / fs  # Assume all signals have the same length
+
+    # Create default titles if none provided
+    if titles is None or len(titles) != n_signals:
+        titles = [f"Signal {i+1}" for i in range(n_signals)]
+
+    _, axes = plt.subplots(n_signals, 1, figsize=figsize, sharex=True, sharey=True)
+
+    if n_signals == 1:
+        axes = [axes]
+
+    for ax, sig, title in zip(axes, signals, titles):
+        ax.plot(t, np.real(sig), label="Real")
+        ax.plot(t, np.imag(sig), label="Imaginary")
+        ax.set_title(title)
+        ax.set_xlabel("Time [µs]")
+
+    axes[0].set_ylabel("Amplitude")  # Common y-axis label
+    for ax in axes:
+        ax.legend()
+        ax.grid()
+
+    plt.tight_layout()
+    plt.show()
