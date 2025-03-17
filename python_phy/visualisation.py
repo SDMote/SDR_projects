@@ -147,6 +147,7 @@ def plot_periodograms(
     NFFT: int = 1024,
     noverlap: int = 16,
     figsize=(12, 5),
+    horizontal: bool = False,
 ) -> None:
     """Plots periodograms of the input signals with shared axes."""
 
@@ -154,7 +155,10 @@ def plot_periodograms(
     if titles is None or len(titles) != n_signals:
         titles = [f"Signal {i+1} Periodogram" for i in range(n_signals)]
 
-    _, axes = plt.subplots(1, n_signals, figsize=figsize, sharex=True, sharey=True)
+    if horizontal:
+        _, axes = plt.subplots(1, n_signals, figsize=figsize, sharex=True, sharey=True)
+    else:
+        _, axes = plt.subplots(n_signals, 1, figsize=figsize, sharex=True, sharey=True)
 
     if n_signals == 1:
         axes = [axes]
@@ -170,7 +174,14 @@ def plot_periodograms(
 
 
 # Plots the real and imaginary parts of complex signals over time.
-def plot_complex_time(signals: list[np.ndarray], fs: float = 1.0, titles: list[str] = None, figsize=(12, 5)) -> None:
+def plot_complex_time(
+    signals: list[np.ndarray],
+    fs: float = 1.0,
+    titles: list[str] = None,
+    figsize=(12, 5),
+    ylim: tuple = None,
+    horizontal: bool = False,
+) -> None:
     """Plots the real and imaginary parts of complex signals over time."""
 
     n_signals = len(signals)
@@ -180,7 +191,10 @@ def plot_complex_time(signals: list[np.ndarray], fs: float = 1.0, titles: list[s
     if titles is None or len(titles) != n_signals:
         titles = [f"Signal {i+1}" for i in range(n_signals)]
 
-    _, axes = plt.subplots(n_signals, 1, figsize=figsize, sharex=True, sharey=True)
+    if horizontal:
+        _, axes = plt.subplots(1, n_signals, figsize=figsize, sharex=True, sharey=True)
+    else:
+        _, axes = plt.subplots(n_signals, 1, figsize=figsize, sharex=True, sharey=True)
 
     if n_signals == 1:
         axes = [axes]
@@ -190,6 +204,8 @@ def plot_complex_time(signals: list[np.ndarray], fs: float = 1.0, titles: list[s
         ax.plot(t, np.imag(sig), label="Imaginary")
         ax.set_title(title)
         ax.set_xlabel("Time (µs)")
+        if ylim:
+            ax.set_ylim(ylim)
 
     axes[0].set_ylabel("Amplitude")  # Common y-axis label
     for ax in axes:
