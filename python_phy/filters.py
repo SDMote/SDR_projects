@@ -34,8 +34,10 @@ def fir_filter(data: np.ndarray, taps) -> np.ndarray:
 
 
 # Adds white Gaussian noise to a signal (complex or real)
-def add_white_gaussian_noise(signal: np.ndarray, noise_power: float) -> np.ndarray:
+def add_white_gaussian_noise(signal: np.ndarray, noise_power: float, noise_power_db: bool = True) -> np.ndarray:
     """# Adds white noise to a signal (complex or real)."""
+    if noise_power_db:
+        noise_power = 10 ** (noise_power / 10)
     if np.iscomplexobj(signal):
         noise = np.sqrt(noise_power / 2) * (
             np.random.normal(0, np.sqrt(2) / 2, len(signal)) + 1j * np.random.normal(0, np.sqrt(2) / 2, len(signal))

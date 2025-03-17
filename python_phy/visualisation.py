@@ -154,7 +154,7 @@ def plot_periodograms(
     if titles is None or len(titles) != n_signals:
         titles = [f"Signal {i+1} Periodogram" for i in range(n_signals)]
 
-    _, axes = plt.subplots(n_signals, 1, figsize=figsize, sharex=True, sharey=True)
+    _, axes = plt.subplots(1, n_signals, figsize=figsize, sharex=True, sharey=True)
 
     if n_signals == 1:
         axes = [axes]
@@ -163,9 +163,7 @@ def plot_periodograms(
     for ax, sig, title in zip(axes, signals, titles):
         ax.psd(sig, Fs=fs, NFFT=NFFT, noverlap=noverlap, scale_by_freq=False)
         ax.set_title(title)
-        ax.set_xlabel("Frequency [Hz]")
-
-    axes[0].set_ylabel("Power Spectral Density [dB/Hz]")
+        ax.set_xlabel("Frequency (Hz)")
 
     plt.tight_layout()
     plt.show()
@@ -191,7 +189,7 @@ def plot_complex_time(signals: list[np.ndarray], fs: float = 1.0, titles: list[s
         ax.plot(t, np.real(sig), label="Real")
         ax.plot(t, np.imag(sig), label="Imaginary")
         ax.set_title(title)
-        ax.set_xlabel("Time [µs]")
+        ax.set_xlabel("Time (µs)")
 
     axes[0].set_ylabel("Amplitude")  # Common y-axis label
     for ax in axes:
