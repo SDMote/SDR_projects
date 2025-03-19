@@ -11,6 +11,7 @@ from packet_utils import (
     generate_access_code_ble,
     map_nibbles_to_chips,
     pack_chips_to_bytes,
+    preamble_detection_802154,
 )
 
 
@@ -187,11 +188,8 @@ class Receiver802154:
         self, chip_samples: np.ndarray, preamble_threshold: int = 12, CRC_included: bool = True
     ) -> list[dict]:
         """Receive hard decisions (bit samples) and return dictionary with detected packets."""
-        # Decode detected packets found in bit_samples array
-        access_code: str = map_nibbles_to_chips([0x00, 0x00, 0x00, 0x00, 0xA7], self.chip_mapping)
-        preamble_positions: np.ndarray = correlate_access_code(
-            chip_samples, access_code, threshold=preamble_threshold, reduce_mask=True
-        )
+
+        preamble_positions: np.ndarray = preamble_detection_802154(chip_samples, preamble_threshold, self.chip_mapping)
         detected_packets: list[dict] = []
 
         # Read packets starting from the end of the preamble
