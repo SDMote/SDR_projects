@@ -53,7 +53,7 @@ def decode_bits(data, threshold):
 
 
 # Load data
-data = np.fromfile(f"data/{files[file_num]}.dat", dtype=np.complex64)
+data = np.fromfile(f"data/new/{files[file_num]}.dat", dtype=np.complex64)
 print(len(data))
 phase_shift = -2 + np.pi / 2 + np.pi
 phased_data = data * np.exp(1j * phase_shift)
