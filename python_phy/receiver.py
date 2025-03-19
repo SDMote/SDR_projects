@@ -1,15 +1,15 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import scipy
 
 from demodulation import symbol_sync, demodulate_frequency, binary_slicer
-from filters import single_pole_iir_filter, decimating_fir_filter, simple_squelch
+from modulation import gaussian_fir_taps, half_sine_fir_taps
+from filters import single_pole_iir_filter, simple_squelch
 from packet_utils import (
     correlate_access_code,
     compute_crc,
     ble_whitening,
     pack_bits_to_uint8,
     generate_access_code_ble,
-    map_nibbles_to_chips,
     pack_chips_to_bytes,
     preamble_detection_802154,
 )
@@ -21,50 +21,44 @@ class ReceiverBLE:
     fsk_deviation_ble: float = 250e3  # Hz
     crc_size: int = 3  # 3 bytes CRC for BLE
 
-    def __init__(self, fs: int | float, decimation: int):
+    def __init__(self, fs: int):
         # Instance variables
         self.fs = fs  # Sampling rate
-        self.sps: float = self.fs / self.transmission_rate
-        self.decimation = decimation
+        self.sps: int = int(self.fs / self.transmission_rate)
+
+        # Create matched filter taps from sampling rate `fs`
+        # Generate Gaussian taps and convolve with rectangular window
+        gauss_taps = gaussian_fir_taps(sps=self.sps, ntaps=self.sps, bt=0.5)
+        gauss_taps = scipy.signal.convolve(gauss_taps, np.ones(self.sps))
+        gauss_taps /= np.sum(gauss_taps)  # Unitary gain
+        self.gauss_taps = gauss_taps
 
     # Receives an array of complex data and returns hard decision array
     def demodulate(
         self,
         iq_samples: np.ndarray,
         squelch_threshold: float = 1e-1,
-        cutoff_freq: float = 1e6,
-        transition_width: float = 100e3,
     ) -> np.ndarray:
         """Receives an array of complex data and returns hard decision array."""
 
-        # Low pass filter
-        iq_samples = decimating_fir_filter(
-            iq_samples,
-            decimation=self.decimation,
-            gain=1,
-            fs=self.fs,
-            cutoff_freq=cutoff_freq,
-            transition_width=transition_width,
-            window="hamming",
-        )
+        # Low pass matched filter (Gaussian kernel)
+        # Generate Gaussian taps and convolve with rectangular window
+        iq_samples = scipy.signal.convolve(iq_samples, self.gauss_taps, mode="full")
 
         # Squelch
         iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
 
-        # Quadrature demodulation
+        # Frequency demodulation
         freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
+        freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
-        # Matched filter
-        # TODO, something like the following
-        # matched_filter_taps = np.sin(np.linspace(0, np.pi, sps + 1))
-        # matched_filter_taps /= np.max(matched_filter_taps)
-        # matched = fir_filter(freq_samples, matched_filter_taps)
+        # Matched filter after frequency demodulation
+        freq_samples = scipy.signal.convolve(freq_samples, self.gauss_taps, mode="full")
 
         # Symbol synchronisation
         bit_samples = symbol_sync(freq_samples, sps=self.sps)
         bit_samples = binary_slicer(bit_samples)
 
-        # May want to add intermediate step returns for debugging (low-pass filter, squelch, matched filtering)
         return bit_samples
 
     # Receive hard decisions (bit samples) and return dictionary with detected packets
@@ -138,48 +132,44 @@ class Receiver802154:
         dtype=np.uint32,
     )
 
-    def __init__(self, fs: int | float, decimation: int):
+    def __init__(self, fs: int):
         # Instance variables
         self.fs = fs  # Sampling rate
-        self.sps: float = self.fs / self.transmission_rate
-        self.decimation = decimation
+        self.spc: int = int(self.fs / self.transmission_rate)  # Samples per chip
+
+        # Matched filtering (Half Sine FIR taps) from sampling rate `fs`
+        hss_taps = half_sine_fir_taps(2 * self.spc)  # One symbol is two chips long
+        hss_taps /= np.sum(hss_taps)  # Unitary gain
+        self.hss_taps = hss_taps
+
+        # Matched filtering (Rect taps) after frequency demodulation
+        rect_taps = np.ones(self.spc)
+        rect_taps /= np.sum(rect_taps)  # Unitary gain
+        self.rect_taps = rect_taps
 
     # Receives an array of complex data and returns hard decision array
     def demodulate(
         self,
         iq_samples: np.ndarray,
         squelch_threshold: float = 1e-1,
-        cutoff_freq: float = 2e6,
-        transition_width: float = 200e3,
     ) -> np.ndarray:
         """Receives an array of complex data and returns hard decision array."""
 
-        # Low pass filter
-        iq_samples = decimating_fir_filter(
-            iq_samples,
-            decimation=self.decimation,
-            gain=1,
-            fs=self.fs,
-            cutoff_freq=cutoff_freq,
-            transition_width=transition_width,
-            window="hamming",
-        )
+        # Low pass matched filter
+        iq_samples = scipy.signal.convolve(iq_samples, self.hss_taps, mode="full")
 
         # Squelch
         iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
 
-        # Quadrature demodulation
+        # Frequency demodulation
         freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
         freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
-        # Matched filter
-        # TODO, something like the following
-        # matched_filter_taps = np.sin(np.linspace(0, np.pi, sps + 1))
-        # matched_filter_taps /= np.max(matched_filter_taps)
-        # matched = fir_filter(freq_samples, matched_filter_taps)
+        # Matched filter after frequency demodulation
+        freq_samples = scipy.signal.convolve(freq_samples, self.rect_taps, mode="full")
 
         # Symbol synchronisation
-        bit_samples = symbol_sync(freq_samples, sps=self.sps)
+        bit_samples = symbol_sync(freq_samples, sps=self.spc)
         bit_samples = binary_slicer(bit_samples)
         return bit_samples
 

@@ -56,18 +56,17 @@ def main(affected, interference):
         click.echo("Unsupported value for 'affected'.")
         return
 
-    """Opem reference packet (for BER comparison)"""
+    """Open reference packet (for BER comparison)"""
     # Hardcoded parameters for now
     fs: int | float = 10e6  # Hz
-    decimation: int = 1
     relative_path: str = "../capture_nRF/data/new/"
 
     # Open file, demodulate and get reference packet
     iq_reference = read_iq_data(f"{relative_path}{reference_filename}")
     if affected == "ble":
-        affected_receiver = ReceiverBLE(fs=fs, decimation=decimation)
+        affected_receiver = ReceiverBLE(fs=fs)
     else:
-        affected_receiver = Receiver802154(fs=fs, decimation=decimation)
+        affected_receiver = Receiver802154(fs=fs)
 
     bit_samples = affected_receiver.demodulate(iq_reference)  # From IQ samples to hard decisions
     reference_packet: list[dict] = affected_receiver.process_phy_packet(bit_samples)  # From hard decisions to packets
