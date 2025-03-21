@@ -48,8 +48,7 @@ def ble_whitening(data: np.ndarray, lfsr=0x01, polynomial=0x11):
             data_bit = (byte >> bit_pos) & 1  # Extract current bit
             whitened_bit = data_bit ^ lfsr_msb  # XOR
 
-            # Update the whitened byte
-            whitened_byte |= whitened_bit << (bit_pos)
+            whitened_byte |= whitened_bit << (bit_pos)  # Update the whitened byte
 
             # Update LFSR
             if lfsr_msb:  # If MSB is 1 (before shifting), apply feedback
@@ -163,7 +162,7 @@ def decode_chips(chips32: int, chip_mapping: np.ndarray, threshold: int = 32) ->
     if min_threshold <= threshold:
         return best_match & 0xF  # Return position in chip mapping
 
-    return 0xFF  # If no valid match was found, return 0xFF to indicate an error.
+    return 0xFF  # If no valid match was found, return 0xFF to indicate an error
 
 
 # Pack chips into bytes. Assumes each byte is formed from 64 chips (32 per nibble).
@@ -255,9 +254,7 @@ def create_802154_phy_packet(payload: np.ndarray, append_crc: bool) -> np.ndarra
     crc_size = 2
     max_payload_size = 5  # Bytes
     max_payload_size_with_crc = max_payload_size - crc_size  # Bytes
-
-    # Set the preamble
-    preamble = np.array([0x00, 0x00, 0x00, 0x00, 0xA7], dtype=np.uint8)
+    preamble = np.array([0x00, 0x00, 0x00, 0x00, 0xA7], dtype=np.uint8)  # Set the preamble
 
     # Adjust payload size based on CRC inclusion
     if append_crc:
@@ -269,19 +266,14 @@ def create_802154_phy_packet(payload: np.ndarray, append_crc: bool) -> np.ndarra
         # Set length byte and CRC
         length = np.uint8(len(payload) + crc_size)
         crc = compute_crc(payload, crc_init=0x0000, crc_poly=0x011021, crc_size=crc_size)
-
-        # Assemble packet
-        packet = np.concatenate((preamble, [length], payload, crc))
+        packet = np.concatenate((preamble, [length], payload, crc))  # Assemble packet
 
     else:
         if len(payload) > max_payload_size:
             payload = payload[:max_payload_size]
             print(f"Warning: create_802154_phy_packet() - Payload exceeded {max_payload_size}B and has been cropped.")
-        # Set length byte
-        length = np.uint8(len(payload))
-
-        # Assemble packet
-        packet = np.concatenate((preamble, [length], payload))
+        length = np.uint8(len(payload))  # Set length byte
+        packet = np.concatenate((preamble, [length], payload))  # Assemble packet
 
     return packet
 
@@ -315,3 +307,47 @@ def split_iq_chips(uint32_chips: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         index += 16  # Increase return index for each value in uint32_array
 
     return I_chips, Q_chips
+
+
+# Searches for an IEEE 802.15.4 preamble in hard decisions `chip_samples`.
+def preamble_detection_802154(
+    chip_samples: np.ndarray,
+    threshold: int,
+    chip_mapping: np.ndarray,
+    pattern: np.ndarray = np.array([0x00, 0x00, 0x00, 0x00, 0xA7]),
+) -> np.ndarray:
+    """
+    Searches for an IEEE 802.15.4 preamble in `chip_samples`.
+    It first looks for 0x00 chip mappings as an a priori estimation, and then from each match,
+    it searches for the rest of the preamble.
+    """
+    if len(pattern) == 0:
+        return np.array([])  # No pattern means no detection
+
+    # Detect potential preamble positions by searching for the first byte of the pattern
+    access_code = map_nibbles_to_chips([pattern[0]], chip_mapping)
+    preamble_positions = correlate_access_code(chip_samples, access_code, threshold=threshold, reduce_mask=True)
+
+    if len(pattern) == 1:
+        return np.array(preamble_positions)
+
+    preamble_positions_final = []
+
+    # Verify the remaining bytes of the pattern
+    for position in preamble_positions:
+        for byte in pattern[1:]:
+            next_byte = pack_chips_to_bytes(
+                chip_samples[position : position + 64],
+                num_bytes=1,
+                chip_mapping=chip_mapping,
+                threshold=threshold,
+            )
+            if next_byte == byte:
+                position += 64  # Move to the next byte position
+            else:
+                break
+        else:
+            # All iterations passed
+            preamble_positions_final.append(position)
+
+    return np.array(preamble_positions_final)
