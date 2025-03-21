@@ -1,15 +1,9 @@
 import click
-import numpy as np
 import matplotlib.pyplot as plt
-import scipy
 from data_io import read_iq_data
-from filters import simple_squelch, decimating_fir_filter
-from visualisation import plot_payload, compare_bits_with_reference, subplots_iq, plot_ber_vs_frequency_offset
+from visualisation import plot_payload, subplots_iq, plot_ber_vs_frequency_offset
 from receiver import ReceiverBLE, Receiver802154
 from interference_utils import (
-    multiply_by_complex_exponential,
-    pad_interference,
-    correlation_wrapper,
     subtract_interference_wrapper,
     compute_ber_vs_frequency,
 )

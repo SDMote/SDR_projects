@@ -1,9 +1,11 @@
 import numpy as np
 import scipy
+from abc import ABC, abstractmethod
+from typing import Literal, get_args
 
-from demodulation import symbol_sync, demodulate_frequency, binary_slicer
+from demodulation import symbol_sync, demodulate_frequency, binary_slicer, TEDType
 from modulation import gaussian_fir_taps, half_sine_fir_taps
-from filters import single_pole_iir_filter, simple_squelch
+from filters import single_pole_iir_filter
 from packet_utils import (
     correlate_access_code,
     compute_crc,
@@ -14,8 +16,35 @@ from packet_utils import (
     preamble_detection_802154,
 )
 
+# FSK demodulation types
+DemodulationType = Literal[
+    "INSTANTANEOUS_FREQUENCY",
+    "BAND_PASS",
+]
 
-class ReceiverBLE:
+
+# Define abstract class template for Receivers
+# Methods are then overridden by the children classes
+class Receiver(ABC):
+    @abstractmethod  # Receives an array of complex data and returns hard decision array
+    def demodulate(
+        self,
+        iq_samples: np.ndarray,
+        demodulation_type: DemodulationType,
+        ted_type: TEDType,
+    ) -> np.ndarray:
+        pass
+
+    @abstractmethod  # Receive hard decisions and return dictionary with detected packets
+    def process_phy_packet(self, *args, **kwargs) -> list[dict]:
+        pass
+
+    @abstractmethod  # Encapsulte previous methods in one call
+    def demodulate_to_packet(self, *args, **kwargs) -> list[dict]:
+        pass
+
+
+class ReceiverBLE(Receiver):
     # Class variables
     transmission_rate = 1e6  # BLE 1 Mb/s
     fsk_deviation_ble: float = 250e3  # Hz
@@ -23,7 +52,7 @@ class ReceiverBLE:
 
     def __init__(self, fs: int):
         # Instance variables
-        self.fs = fs  # Sampling rate
+        self.fs = int(fs)  # Sampling rate
         self.sps: int = int(self.fs / self.transmission_rate)
 
         # Create matched filter taps from sampling rate `fs`
@@ -37,33 +66,53 @@ class ReceiverBLE:
     def demodulate(
         self,
         iq_samples: np.ndarray,
-        squelch_threshold: float = 1e-1,
+        demodulation_type: DemodulationType = "INSTANTANEOUS_FREQUENCY",
+        ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
     ) -> np.ndarray:
         """Receives an array of complex data and returns hard decision array."""
 
-        # Low pass matched filter (Gaussian kernel)
-        # Generate Gaussian taps and convolve with rectangular window
-        iq_samples = scipy.signal.convolve(iq_samples, self.gauss_taps, mode="full")
+        if demodulation_type == "INSTANTANEOUS_FREQUENCY":
+            # Low pass matched filter (Gaussian kernel)
+            # Generate Gaussian taps and convolve with rectangular window
+            iq_samples = scipy.signal.convolve(iq_samples, self.gauss_taps, mode="full")
 
-        # Squelch
-        iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
+            # Frequency demodulation
+            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
+            freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
-        # Frequency demodulation
-        freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
-        freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
+            # Matched filter after frequency demodulation
+            before_symbol_sync = scipy.signal.convolve(freq_samples, self.gauss_taps, mode="full")
 
-        # Matched filter after frequency demodulation
-        freq_samples = scipy.signal.convolve(freq_samples, self.gauss_taps, mode="full")
+        elif demodulation_type == "BAND_PASS":
+            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation_ble * np.arange(len(self.gauss_taps)) / self.fs)
+            gauss_bandpass_lower = self.gauss_taps / complex_exp
+            gauss_bandpass_higher = self.gauss_taps * complex_exp
+
+            # Band-pass filter (complex signal, complex filter, complex output)
+            iq_samples_lower = scipy.signal.convolve(iq_samples, gauss_bandpass_lower, mode="full")
+            iq_samples_higher = scipy.signal.convolve(iq_samples, gauss_bandpass_higher, mode="full")
+
+            # Magnitude squared and subtract
+            iq_samples_lower_square = iq_samples_lower * np.conj(iq_samples_lower)
+            iq_samples_higher_square = iq_samples_higher * np.conj(iq_samples_higher)
+            iq_samples_lower_square /= np.max(iq_samples_lower_square)
+            iq_samples_higher_square /= np.max(iq_samples_higher_square)
+            before_symbol_sync = np.real(iq_samples_higher_square - iq_samples_lower_square)
+
+        else:
+            raise ValueError(
+                f"Invalid demodulation type '{demodulation_type}'. Choose from {list(get_args(DemodulationType))}"
+            )
 
         # Symbol synchronisation
-        bit_samples = symbol_sync(freq_samples, sps=self.sps)
+        bit_samples = symbol_sync(before_symbol_sync, sps=self.sps, ted_type=ted_type)
         bit_samples = binary_slicer(bit_samples)
 
         return bit_samples
 
     # Receive hard decisions (bit samples) and return dictionary with detected packets
     def process_phy_packet(
-        self, bit_samples: np.ndarray, base_address: int = 0x12345678, preamble_threshold: int = 2
+        self, bit_samples: np.ndarray, base_address: int = 0x12345678, preamble_threshold: int = 4
     ) -> list[dict]:
         """Receive hard decisions (bit samples) and return dictionary with detected packets."""
         # Decode detected packets found in bit_samples array
@@ -89,8 +138,6 @@ class ReceiverBLE:
             header_and_payload = np.concatenate((header, payload_and_crc[: -self.crc_size]))
             computed_crc = compute_crc(header_and_payload, crc_init=0x00FFFF, crc_poly=0x00065B, crc_size=self.crc_size)
             crc_check = True if (computed_crc == payload_and_crc[-self.crc_size :]).all() else False
-            # print(f"{header_and_payload = }")
-            # print(f"{computed_crc = }")
 
             payload = header_and_payload[2:]  # Remove CRC bytes
 
@@ -101,8 +148,27 @@ class ReceiverBLE:
 
         return detected_packets
 
+    # Receive IQ data and return dictionary with detected packets.
+    def demodulate_to_packet(
+        self,
+        iq_samples: np.ndarray,
+        demodulation_type: DemodulationType = "INSTANTANEOUS_FREQUENCY",
+        ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
+        base_address: int = 0x12345678,
+        preamble_threshold: int = 2,
+    ):
+        """Receive IQ data and return dictionary with detected packets."""
+        bit_samples = self.demodulate(
+            iq_samples, demodulation_type=demodulation_type, ted_type=ted_type
+        )  # From IQ samples to hard decisions
+        received_packets: list[dict] = self.process_phy_packet(
+            bit_samples, base_address=base_address, preamble_threshold=preamble_threshold
+        )  # From hard decisions to packets
 
-class Receiver802154:
+        return received_packets
+
+
+class Receiver802154(Receiver):
     # Class variables
     transmission_rate = 2e6  # IEEE 802.15.4 2 Mchip/s
     fsk_deviation_802154: float = 500e3  # Hz
@@ -134,7 +200,7 @@ class Receiver802154:
 
     def __init__(self, fs: int):
         # Instance variables
-        self.fs = fs  # Sampling rate
+        self.fs = int(fs)  # Sampling rate
         self.spc: int = int(self.fs / self.transmission_rate)  # Samples per chip
 
         # Matched filtering (Half Sine FIR taps) from sampling rate `fs`
@@ -151,31 +217,55 @@ class Receiver802154:
     def demodulate(
         self,
         iq_samples: np.ndarray,
-        squelch_threshold: float = 1e-1,
+        demodulation_type: DemodulationType = "INSTANTANEOUS_FREQUENCY",
+        ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
     ) -> np.ndarray:
         """Receives an array of complex data and returns hard decision array."""
 
-        # Low pass matched filter
-        iq_samples = scipy.signal.convolve(iq_samples, self.hss_taps, mode="full")
+        if demodulation_type == "INSTANTANEOUS_FREQUENCY":
+            # Low pass matched filter (half sine shape taps)
+            iq_samples = scipy.signal.convolve(iq_samples, self.hss_taps, mode="full")
 
-        # Squelch
-        iq_samples = simple_squelch(iq_samples, threshold=squelch_threshold)
+            # Frequency demodulation
+            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
+            freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
-        # Frequency demodulation
-        freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
-        freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
+            # Matched filter after frequency demodulation
+            before_symbol_sync = scipy.signal.convolve(freq_samples, self.rect_taps, mode="full")
 
-        # Matched filter after frequency demodulation
-        freq_samples = scipy.signal.convolve(freq_samples, self.rect_taps, mode="full")
+        elif demodulation_type == "BAND_PASS":
+            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation_802154 * np.arange(len(self.rect_taps)) / self.fs)
+            rect_bandpass_lower = self.rect_taps / complex_exp
+            rect_bandpass_higher = self.rect_taps * complex_exp
+
+            # Band-pass filter (complex signal, complex filter, complex output)
+            iq_samples_lower = scipy.signal.convolve(iq_samples, rect_bandpass_lower, mode="full")
+            iq_samples_higher = scipy.signal.convolve(iq_samples, rect_bandpass_higher, mode="full")
+
+            # Magnitude squared and subtract
+            iq_samples_lower_square = iq_samples_lower * np.conj(iq_samples_lower)
+            iq_samples_higher_square = iq_samples_higher * np.conj(iq_samples_higher)
+            iq_samples_lower_square /= np.max(iq_samples_lower_square)
+            iq_samples_higher_square /= np.max(iq_samples_higher_square)
+
+            before_symbol_sync = np.real(iq_samples_higher_square - iq_samples_lower_square)
+        else:
+            raise ValueError(
+                f"Invalid demodulation type '{demodulation_type}'. Choose from {list(get_args(DemodulationType))}"
+            )
 
         # Symbol synchronisation
-        bit_samples = symbol_sync(freq_samples, sps=self.spc)
+        bit_samples = symbol_sync(before_symbol_sync, sps=self.spc, ted_type=ted_type)
         bit_samples = binary_slicer(bit_samples)
+
         return bit_samples
 
     # Receive hard decisions (bit samples) and return dictionary with detected packets
     def process_phy_packet(
-        self, chip_samples: np.ndarray, preamble_threshold: int = 12, CRC_included: bool = True
+        self,
+        chip_samples: np.ndarray,
+        preamble_threshold: int = 12,
+        CRC_included: bool = True,
     ) -> list[dict]:
         """Receive hard decisions (bit samples) and return dictionary with detected packets."""
 
@@ -215,3 +305,22 @@ class Receiver802154:
             )
 
         return detected_packets
+
+    # Receive IQ data and return dictionary with detected packets.
+    def demodulate_to_packet(
+        self,
+        iq_samples: np.ndarray,
+        demodulation_type: DemodulationType = "INSTANTANEOUS_FREQUENCY",
+        ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
+        preamble_threshold: int = 12,
+        CRC_included: bool = True,
+    ):
+        """Receive IQ data and return dictionary with detected packets."""
+        bit_samples = self.demodulate(
+            iq_samples, demodulation_type=demodulation_type, ted_type=ted_type
+        )  # From IQ samples to hard decisions
+        received_packets: list[dict] = self.process_phy_packet(
+            bit_samples, CRC_included=CRC_included, preamble_threshold=preamble_threshold
+        )  # From hard decisions to packets
+
+        return received_packets
