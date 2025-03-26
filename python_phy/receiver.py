@@ -22,10 +22,22 @@ DemodulationType = Literal[
     "BAND_PASS",
 ]
 
+# Receiver protocols
+ReceiverType = Literal[
+    "BLE",
+    "IEEE802154",
+]
+
 
 # Define abstract class template for Receivers
 # Methods are then overridden by the children classes
 class Receiver(ABC):
+    # Class variables (overriden in derived classes)
+    transmission_rate: float = None  # baud/s
+    fsk_deviation: float = None  # Hz
+    crc_size: int = None  # Bytes
+    max_packet_len: int = None  # Bytes
+
     @abstractmethod  # Receives an array of complex data and returns hard decision array
     def demodulate(
         self,
@@ -46,9 +58,10 @@ class Receiver(ABC):
 
 class ReceiverBLE(Receiver):
     # Class variables
-    transmission_rate = 1e6  # BLE 1 Mb/s
-    fsk_deviation_ble: float = 250e3  # Hz
+    transmission_rate: float = 1e6  # BLE 1 Mb/s
+    fsk_deviation: float = 250e3  # Hz
     crc_size: int = 3  # 3 bytes CRC for BLE
+    max_packet_len: int = 255  # Bytes
 
     def __init__(self, fs: int):
         # Instance variables
@@ -77,14 +90,14 @@ class ReceiverBLE(Receiver):
             iq_samples = scipy.signal.convolve(iq_samples, self.gauss_taps, mode="full")
 
             # Frequency demodulation
-            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
+            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation))
             freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
             # Matched filter after frequency demodulation
             before_symbol_sync = scipy.signal.convolve(freq_samples, self.gauss_taps, mode="full")
 
         elif demodulation_type == "BAND_PASS":
-            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation_ble * np.arange(len(self.gauss_taps)) / self.fs)
+            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation * np.arange(len(self.gauss_taps)) / self.fs)
             gauss_bandpass_lower = self.gauss_taps / complex_exp
             gauss_bandpass_higher = self.gauss_taps * complex_exp
 
@@ -170,10 +183,10 @@ class ReceiverBLE(Receiver):
 
 class Receiver802154(Receiver):
     # Class variables
-    transmission_rate = 2e6  # IEEE 802.15.4 2 Mchip/s
-    fsk_deviation_802154: float = 500e3  # Hz
+    transmission_rate: float = 2e6  # IEEE 802.15.4 2 Mchip/s
+    fsk_deviation: float = 500e3  # Hz
     crc_size: int = 2  # 2 bytes CRC for IEEE 802.15.4
-    max_packet_len: int = 127
+    max_packet_len: int = 127  # Bytes
 
     # Chip mapping for differential MSK encoding
     chip_mapping: np.ndarray = np.array(
@@ -227,14 +240,14 @@ class Receiver802154(Receiver):
             iq_samples = scipy.signal.convolve(iq_samples, self.hss_taps, mode="full")
 
             # Frequency demodulation
-            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
+            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation))
             freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
             # Matched filter after frequency demodulation
             before_symbol_sync = scipy.signal.convolve(freq_samples, self.rect_taps, mode="full")
 
         elif demodulation_type == "BAND_PASS":
-            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation_802154 * np.arange(len(self.rect_taps)) / self.fs)
+            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation * np.arange(len(self.rect_taps)) / self.fs)
             rect_bandpass_lower = self.rect_taps / complex_exp
             rect_bandpass_higher = self.rect_taps * complex_exp
 
