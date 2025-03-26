@@ -98,15 +98,6 @@ def plot_payload(packet_data: dict) -> None:
     plt.tight_layout()
 
 
-# Compare two byte arrays and return a bitwise array of differences
-def compare_bits_with_reference(payload: np.ndarray, reference_payload: np.ndarray) -> np.ndarray:
-    if payload.shape != reference_payload.shape:
-        return None
-
-    error_bits = np.bitwise_xor(reference_payload, payload)  # Compute XOR to get differing bits
-    return np.unpackbits(error_bits, bitorder="little")  # Unpack to binary representation
-
-
 # Plots IQ data in vertical subplots.
 def subplots_iq(data: list, fs: float, titles=None, labels=None, show=True, figsize=(10, 6)) -> None:
     """Plots IQ data in vertical subplots."""

@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-from visualisation import compare_bits_with_reference
 
 
 # Pads iq_samples_interference with zeros at the beginning (delay_zero_padding)
@@ -148,3 +147,12 @@ def compute_ber_vs_frequency(
             bit_error_rates[index] = np.nan  # Not detected packet (subtraction probably messed up with preamble)
 
     return bit_error_rates
+
+
+# Compare two byte arrays and return a bitwise array of differences
+def compare_bits_with_reference(payload: np.ndarray, reference_payload: np.ndarray) -> np.ndarray:
+    if payload.shape != reference_payload.shape:
+        return None
+
+    error_bits = np.bitwise_xor(reference_payload, payload)  # Compute XOR to get differing bits
+    return np.unpackbits(error_bits, bitorder="little")  # Unpack to binary representation
