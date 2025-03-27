@@ -205,3 +205,45 @@ def plot_complex_time(
 
     plt.tight_layout()
     plt.show()
+
+
+# Compare the Packet Delivery Rate of various demodulation methods in the same plot.
+class PDRPlotter:
+    """Compare the Packet Delivery Rate of various demodulation methods in the same plot."""
+
+    def __init__(self, x_label: str = "SNR (dB)", y_label: str = "Packet Delivery Rate (-)"):
+        """Initialise the plotter with x and y axis labels."""
+        self.x_label = x_label
+        self.y_label = y_label
+        self.results_data = []  # Tuples of (snr_values, metric_values, label, color, linestyle, marker)
+
+    def add_trace(
+        self,
+        results: dict,
+        label: str,
+        colour: str = "blue",
+        linestyle: str = "-",  # ("-"", "--")
+        marker: str = "o",  # ("o", "s", "*")
+        metric: str = "pdr_ratio",
+    ):
+        """Add a result dictionary to be plotted."""
+        snr_values = sorted(results.keys())
+        metric_values = [results[snr].get(metric, 0) for snr in snr_values]
+        self.results_data.append((snr_values, metric_values, label, colour, linestyle, marker))
+
+    def plot(self, title: str = None, legend: bool = True, grid: bool = True, figsize=(10, 6)):
+        """Plot all the traces on the same figure."""
+        plt.figure(figsize=figsize)
+
+        for snr_values, metric_values, label, color, linestyle, marker in self.results_data:
+            plt.plot(snr_values, metric_values, label=label, color=color, linestyle=linestyle, marker=marker)
+
+        plt.xlabel(self.x_label)
+        plt.ylabel(self.y_label)
+        if title:
+            plt.title(title)
+        if legend:
+            plt.legend()
+        if grid:
+            plt.grid(True)
+        plt.show()

@@ -168,7 +168,7 @@ class ReceiverBLE(Receiver):
         demodulation_type: DemodulationType = "INSTANTANEOUS_FREQUENCY",
         ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
         base_address: int = 0x12345678,
-        preamble_threshold: int = 2,
+        preamble_threshold: int = 4,
     ):
         """Receive IQ data and return dictionary with detected packets."""
         bit_samples = self.demodulate(
