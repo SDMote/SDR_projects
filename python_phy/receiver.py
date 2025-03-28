@@ -55,6 +55,18 @@ class Receiver(ABC):
     def demodulate_to_packet(self, *args, **kwargs) -> list[dict]:
         pass
 
+    def set_symbol_sync_parameters(  # Set specific symbol sync parameters
+        self,
+        TED_gain: float = 1.0,
+        loop_BW: float = 0.045,
+        damping: float = 1.0,
+        max_deviation: float = 1.5,
+    ) -> None:
+        self._symbol_sync_param_TED_gain = TED_gain
+        self._symbol_sync_param_loop_BW = loop_BW
+        self._symbol_sync_param_damping = damping
+        self._symbol_sync_param_max_deviation = max_deviation
+
 
 class ReceiverBLE(Receiver):
     # Class variables
@@ -74,6 +86,8 @@ class ReceiverBLE(Receiver):
         gauss_taps = scipy.signal.convolve(gauss_taps, np.ones(self.sps))
         gauss_taps /= np.sum(gauss_taps)  # Unitary gain
         self.gauss_taps = gauss_taps
+
+        self.set_symbol_sync_parameters()
 
     # Receives an array of complex data and returns hard decision array
     def demodulate(
@@ -118,7 +132,15 @@ class ReceiverBLE(Receiver):
             )
 
         # Symbol synchronisation
-        bit_samples = symbol_sync(before_symbol_sync, sps=self.sps, ted_type=ted_type)
+        bit_samples = symbol_sync(
+            before_symbol_sync,
+            sps=self.sps,
+            ted_type=ted_type,
+            TED_gain=self._symbol_sync_param_TED_gain,
+            loop_BW=self._symbol_sync_param_loop_BW,
+            damping=self._symbol_sync_param_damping,
+            max_deviation=self._symbol_sync_param_max_deviation,
+        )
         bit_samples = binary_slicer(bit_samples)
 
         return bit_samples
@@ -169,7 +191,7 @@ class ReceiverBLE(Receiver):
         ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
         base_address: int = 0x12345678,
         preamble_threshold: int = 4,
-    ):
+    ) -> list[dict]:
         """Receive IQ data and return dictionary with detected packets."""
         bit_samples = self.demodulate(
             iq_samples, demodulation_type=demodulation_type, ted_type=ted_type
@@ -226,6 +248,8 @@ class Receiver802154(Receiver):
         rect_taps /= np.sum(rect_taps)  # Unitary gain
         self.rect_taps = rect_taps
 
+        self.set_symbol_sync_parameters()
+
     # Receives an array of complex data and returns hard decision array
     def demodulate(
         self,
@@ -268,7 +292,15 @@ class Receiver802154(Receiver):
             )
 
         # Symbol synchronisation
-        bit_samples = symbol_sync(before_symbol_sync, sps=self.spc, ted_type=ted_type)
+        bit_samples = symbol_sync(
+            before_symbol_sync,
+            sps=self.sps,
+            ted_type=ted_type,
+            TED_gain=self._symbol_sync_param_TED_gain,
+            loop_BW=self._symbol_sync_param_loop_BW,
+            damping=self._symbol_sync_param_damping,
+            max_deviation=self._symbol_sync_param_max_deviation,
+        )
         bit_samples = binary_slicer(bit_samples)
 
         return bit_samples
@@ -327,7 +359,7 @@ class Receiver802154(Receiver):
         ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
         preamble_threshold: int = 12,
         CRC_included: bool = True,
-    ):
+    ) -> list[dict]:
         """Receive IQ data and return dictionary with detected packets."""
         bit_samples = self.demodulate(
             iq_samples, demodulation_type=demodulation_type, ted_type=ted_type
