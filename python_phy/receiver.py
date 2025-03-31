@@ -101,14 +101,15 @@ class ReceiverBLE(Receiver):
         if demodulation_type == "INSTANTANEOUS_FREQUENCY":
             # Low pass matched filter (Gaussian kernel)
             # Generate Gaussian taps and convolve with rectangular window
-            iq_samples = scipy.signal.convolve(iq_samples, self.gauss_taps, mode="full")
+            iq_samples = scipy.signal.correlate(iq_samples, self.gauss_taps, mode="full")
 
             # Frequency demodulation
             freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation))
             freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
             # Matched filter after frequency demodulation
-            before_symbol_sync = scipy.signal.convolve(freq_samples, self.gauss_taps, mode="full")
+            # before_symbol_sync = scipy.signal.correlate(freq_samples, self.gauss_taps, mode="full")
+            before_symbol_sync = freq_samples
 
         elif demodulation_type == "BAND_PASS":
             complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation * np.arange(len(self.gauss_taps)) / self.fs)
@@ -116,8 +117,8 @@ class ReceiverBLE(Receiver):
             gauss_bandpass_higher = self.gauss_taps * complex_exp
 
             # Band-pass filter (complex signal, complex filter, complex output)
-            iq_samples_lower = scipy.signal.convolve(iq_samples, gauss_bandpass_lower, mode="full")
-            iq_samples_higher = scipy.signal.convolve(iq_samples, gauss_bandpass_higher, mode="full")
+            iq_samples_lower = scipy.signal.correlate(iq_samples, gauss_bandpass_lower, mode="full")
+            iq_samples_higher = scipy.signal.correlate(iq_samples, gauss_bandpass_higher, mode="full")
 
             # Magnitude squared and subtract
             iq_samples_lower_square = iq_samples_lower * np.conj(iq_samples_lower)
@@ -261,14 +262,14 @@ class Receiver802154(Receiver):
 
         if demodulation_type == "INSTANTANEOUS_FREQUENCY":
             # Low pass matched filter (half sine shape taps)
-            iq_samples = scipy.signal.convolve(iq_samples, self.hss_taps, mode="full")
+            iq_samples = scipy.signal.correlate(iq_samples, self.hss_taps, mode="full")
 
             # Frequency demodulation
             freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation))
             freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
             # Matched filter after frequency demodulation
-            before_symbol_sync = scipy.signal.convolve(freq_samples, self.rect_taps, mode="full")
+            before_symbol_sync = scipy.signal.correlate(freq_samples, self.rect_taps, mode="full")
 
         elif demodulation_type == "BAND_PASS":
             complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation * np.arange(len(self.rect_taps)) / self.fs)
@@ -276,8 +277,8 @@ class Receiver802154(Receiver):
             rect_bandpass_higher = self.rect_taps * complex_exp
 
             # Band-pass filter (complex signal, complex filter, complex output)
-            iq_samples_lower = scipy.signal.convolve(iq_samples, rect_bandpass_lower, mode="full")
-            iq_samples_higher = scipy.signal.convolve(iq_samples, rect_bandpass_higher, mode="full")
+            iq_samples_lower = scipy.signal.correlate(iq_samples, rect_bandpass_lower, mode="full")
+            iq_samples_higher = scipy.signal.correlate(iq_samples, rect_bandpass_higher, mode="full")
 
             # Magnitude squared and subtract
             iq_samples_lower_square = iq_samples_lower * np.conj(iq_samples_lower)
@@ -294,7 +295,7 @@ class Receiver802154(Receiver):
         # Symbol synchronisation
         bit_samples = symbol_sync(
             before_symbol_sync,
-            sps=self.sps,
+            sps=self.spc,
             ted_type=ted_type,
             TED_gain=self._symbol_sync_param_TED_gain,
             loop_BW=self._symbol_sync_param_loop_BW,
