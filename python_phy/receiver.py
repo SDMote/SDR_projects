@@ -3,7 +3,7 @@ import scipy
 from abc import ABC, abstractmethod
 from typing import Literal, get_args
 
-from demodulation import symbol_sync, demodulate_frequency, binary_slicer, TEDType
+from demodulation import symbol_sync, demodulate_frequency, binary_slicer, simple_squelch, TEDType
 from modulation import gaussian_fir_taps, half_sine_fir_taps
 from filters import single_pole_iir_filter
 from packet_utils import (
@@ -102,6 +102,9 @@ class ReceiverBLE(Receiver):
             # Low pass matched filter (Gaussian kernel)
             # Generate Gaussian taps and convolve with rectangular window
             iq_samples = scipy.signal.correlate(iq_samples, self.gauss_taps, mode="full")
+
+            # Squelch
+            iq_samples = simple_squelch(iq_samples, threshold_dB=-20, alpha=0.3)
 
             # Frequency demodulation
             freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation))
