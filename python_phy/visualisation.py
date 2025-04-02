@@ -247,3 +247,46 @@ class PDRPlotter:
         if grid:
             plt.grid(True)
         plt.show()
+
+
+def load_and_plot_pkl_data(
+    title="PDR vs SNR Analysis", folder="data_pdr", metric: str = "pdr_ratio", figsize: tuple = (10, 6)
+):
+    """Loads all .pkl files in the specified folder and generates a plot with sequential styling."""
+    import os
+    import pickle
+
+    # Get all .pkl files in the folder (sorted for consistency)
+    pkl_files = sorted([f for f in os.listdir(folder) if f.endswith(".pkl")])
+
+    # Load each .pkl file into a dictionary
+    data = {}
+    for file in pkl_files:
+        file_path = os.path.join(folder, file)
+        with open(file_path, "rb") as f:
+            data[file] = pickle.load(f)
+
+    # Define plotting parameters
+    colours = ["blue", "red", "green", "purple", "orange", "brown", "pink", "gray", "cyan", "magenta"]
+    linestyles = ["-", "--", "-.", ":"]
+    markers = ["o", "s", "D", "^", "v", "<", ">", "p", "*", "X"]
+
+    # Create an instance of PDRPlotter
+    plotter = PDRPlotter()
+
+    # Add each data trace to the plotter with sequentially assigned styles
+    for i, (filename, values) in enumerate(data.items()):
+        colour = colours[i % len(colours)]
+        linestyle = linestyles[i % len(linestyles)]
+        marker = markers[i % len(markers)]
+        plotter.add_trace(
+            values,
+            filename,
+            colour=colour,
+            linestyle=linestyle,
+            marker=marker,
+            metric=metric,
+        )
+
+    # Plot the data
+    plotter.plot(title=title, figsize=figsize)
