@@ -3,7 +3,7 @@ import scipy
 import concurrent.futures
 from demodulation import TEDType
 from receiver import DemodulationType, Receiver, ReceiverBLE, Receiver802154, ReceiverType
-from filters import add_awgn_band_limited, add_white_gaussian_noise
+from snr_related import add_awgn_signal_present
 
 
 # Pads iq_samples_interference with zeros at the beginning (delay_zero_padding)
@@ -166,14 +166,13 @@ def compare_bits_with_reference(payload: np.ndarray, reference_payload: np.ndarr
 def helper_process_noise_realisation(
     iq_samples: np.ndarray,
     snr: float,
-    fs: float,
-    bw_snr: float,
+    sample_interval: tuple,
     receiver: Receiver,
     demodulation_type: DemodulationType,
     ted_type: TEDType,
 ) -> str:
     """Process one noise realisation: adds noise, demodulates, and categorises the packet result."""
-    iq_noisy = add_awgn_band_limited(iq_samples, snr_db=snr, fs=fs, bw=bw_snr)
+    iq_noisy = add_awgn_signal_present(iq_samples, snr_db=snr, sample_interval=sample_interval)
 
     try:
         received_packets = receiver.demodulate_to_packet(
@@ -197,7 +196,7 @@ def helper_process_noise_realisation(
 def pdr_vs_snr_analysis_parallel(
     iq_samples: np.ndarray,
     snr_range: range,
-    bw_snr: float,
+    sample_interval: tuple,
     fs: float,
     receiver_type: ReceiverType,
     demodulation_type: DemodulationType,
@@ -227,8 +226,7 @@ def pdr_vs_snr_analysis_parallel(
                     helper_process_noise_realisation,
                     iq_samples,
                     snr,
-                    fs,
-                    bw_snr,
+                    sample_interval,
                     receiver,
                     demodulation_type,
                     ted_type,
