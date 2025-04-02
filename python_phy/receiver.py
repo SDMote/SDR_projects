@@ -126,9 +126,8 @@ class ReceiverBLE(Receiver):
             # Magnitude squared and subtract
             iq_samples_lower_square = iq_samples_lower * np.conj(iq_samples_lower)
             iq_samples_higher_square = iq_samples_higher * np.conj(iq_samples_higher)
-            iq_samples_lower_square /= np.max(iq_samples_lower_square)
-            iq_samples_higher_square /= np.max(iq_samples_higher_square)
             before_symbol_sync = np.real(iq_samples_higher_square - iq_samples_lower_square)
+            before_symbol_sync /= np.max(before_symbol_sync)
 
         else:
             raise ValueError(
@@ -286,10 +285,9 @@ class Receiver802154(Receiver):
             # Magnitude squared and subtract
             iq_samples_lower_square = iq_samples_lower * np.conj(iq_samples_lower)
             iq_samples_higher_square = iq_samples_higher * np.conj(iq_samples_higher)
-            iq_samples_lower_square /= np.max(iq_samples_lower_square)
-            iq_samples_higher_square /= np.max(iq_samples_higher_square)
-
             before_symbol_sync = np.real(iq_samples_higher_square - iq_samples_lower_square)
+            before_symbol_sync /= np.max(before_symbol_sync)
+
         else:
             raise ValueError(
                 f"Invalid demodulation type '{demodulation_type}'. Choose from {list(get_args(DemodulationType))}"
