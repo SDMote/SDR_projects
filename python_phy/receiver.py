@@ -266,6 +266,9 @@ class Receiver802154(Receiver):
             # Low pass matched filter (half sine shape taps)
             iq_samples = scipy.signal.correlate(iq_samples, self.hss_taps, mode="full")
 
+            # Squelch
+            iq_samples = simple_squelch(iq_samples, threshold_dB=-20, alpha=0.3)
+
             # Frequency demodulation
             freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation))
             freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
