@@ -330,15 +330,19 @@ class Receiver802154(Receiver):
                 chip_samples[preamble:payload_start], num_bytes=1, chip_mapping=self.chip_mapping, threshold=10
             )  # Payload length in bytes
             payload_length = payload_length[0]
-            assert payload_length <= self.max_packet_len, "Maximum payload length is 127 bytes"
+            if payload_length > self.max_packet_len:  # Maximum payload length is 127 bytes
+                continue  # The packet is lost (not valid)
 
-            # Payload reading
-            payload = pack_chips_to_bytes(
-                chip_samples[payload_start : payload_start + payload_length * 64],
-                num_bytes=payload_length,
-                chip_mapping=self.chip_mapping,
-                threshold=32,  # Once the preamble and length are detected, just return closest guess
-            )
+            try:
+                # Payload reading
+                payload = pack_chips_to_bytes(
+                    chip_samples[payload_start : payload_start + payload_length * 64],
+                    num_bytes=payload_length,
+                    chip_mapping=self.chip_mapping,
+                    threshold=32,  # Once the preamble and length are detected, just return closest guess
+                )
+            except AssertionError as e:  # There was a problem processing the packet
+                continue
 
             crc_check = None
             # CRC check
