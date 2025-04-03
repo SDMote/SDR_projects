@@ -98,15 +98,6 @@ def plot_payload(packet_data: dict) -> None:
     plt.tight_layout()
 
 
-# Compare two byte arrays and return a bitwise array of differences
-def compare_bits_with_reference(payload: np.ndarray, reference_payload: np.ndarray) -> np.ndarray:
-    if payload.shape != reference_payload.shape:
-        return None
-
-    error_bits = np.bitwise_xor(reference_payload, payload)  # Compute XOR to get differing bits
-    return np.unpackbits(error_bits, bitorder="little")  # Unpack to binary representation
-
-
 # Plots IQ data in vertical subplots.
 def subplots_iq(data: list, fs: float, titles=None, labels=None, show=True, figsize=(10, 6)) -> None:
     """Plots IQ data in vertical subplots."""
@@ -214,3 +205,88 @@ def plot_complex_time(
 
     plt.tight_layout()
     plt.show()
+
+
+# Compare the Packet Delivery Rate of various demodulation methods in the same plot.
+class PDRPlotter:
+    """Compare the Packet Delivery Rate of various demodulation methods in the same plot."""
+
+    def __init__(self, x_label: str = "SNR (dB)", y_label: str = "Packet Delivery Rate (-)"):
+        """Initialise the plotter with x and y axis labels."""
+        self.x_label = x_label
+        self.y_label = y_label
+        self.results_data = []  # Tuples of (snr_values, metric_values, label, color, linestyle, marker)
+
+    def add_trace(
+        self,
+        results: dict,
+        label: str,
+        colour: str = "blue",
+        linestyle: str = "-",  # ("-"", "--")
+        marker: str = "o",  # ("o", "s", "*")
+        metric: str = "pdr_ratio",
+    ):
+        """Add a result dictionary to be plotted."""
+        snr_values = sorted(results.keys())
+        metric_values = [results[snr].get(metric, 0) for snr in snr_values]
+        self.results_data.append((snr_values, metric_values, label, colour, linestyle, marker))
+
+    def plot(self, title: str = None, legend: bool = True, grid: bool = True, figsize=(10, 6)):
+        """Plot all the traces on the same figure."""
+        plt.figure(figsize=figsize)
+
+        for snr_values, metric_values, label, color, linestyle, marker in self.results_data:
+            plt.plot(snr_values, metric_values, label=label, color=color, linestyle=linestyle, marker=marker)
+
+        plt.xlabel(self.x_label)
+        plt.ylabel(self.y_label)
+        if title:
+            plt.title(title)
+        if legend:
+            plt.legend()
+        if grid:
+            plt.grid(True)
+        plt.show()
+
+
+def load_and_plot_pkl_data(
+    title="PDR vs SNR Analysis", folder="data_pdr", metric: str = "pdr_ratio", figsize: tuple = (10, 6)
+):
+    """Loads all .pkl files in the specified folder and generates a plot with sequential styling."""
+    import os
+    import pickle
+
+    # Get all .pkl files in the folder (sorted for consistency)
+    pkl_files = sorted([f for f in os.listdir(folder) if f.endswith(".pkl")])
+
+    # Load each .pkl file into a dictionary
+    data = {}
+    for file in pkl_files:
+        file_path = os.path.join(folder, file)
+        with open(file_path, "rb") as f:
+            data[file] = pickle.load(f)
+
+    # Define plotting parameters
+    colours = ["blue", "red", "green", "purple", "orange", "brown", "pink", "gray", "cyan", "magenta"]
+    linestyles = ["-", "--", "-.", ":"]
+    markers = ["o", "s", "D", "^", "v", "<", ">", "p", "*", "X"]
+
+    # Create an instance of PDRPlotter
+    plotter = PDRPlotter()
+
+    # Add each data trace to the plotter with sequentially assigned styles
+    for i, (filename, values) in enumerate(data.items()):
+        colour = colours[i % len(colours)]
+        linestyle = linestyles[i % len(linestyles)]
+        marker = markers[i % len(markers)]
+        plotter.add_trace(
+            values,
+            filename,
+            colour=colour,
+            linestyle=linestyle,
+            marker=marker,
+            metric=metric,
+        )
+
+    # Plot the data
+    plotter.plot(title=title, figsize=figsize)

@@ -1,4 +1,4 @@
-from gnuradio import digital, blocks, gr
+from gnuradio import digital, blocks, gr, analog
 import numpy as np
 from typing import Literal
 
@@ -79,8 +79,32 @@ def symbol_sync(
 
     # Connect blocks and run
     tb = gr.top_block()
-    tb.connect(src, symbol_sync_block)
-    tb.connect(symbol_sync_block, sink)
+    tb.connect(src, symbol_sync_block, sink)
+    tb.run()
+
+    return np.array(sink.data())
+
+
+# Simple squelch function from GNU Radio
+def simple_squelch(
+    input_samples: np.ndarray,
+    threshold_dB: float = -20,
+    alpha: float = 0.3,
+) -> np.ndarray:
+    """Simple squelch function from GNU Radio."""
+
+    # Convert NumPy array to GNU Radio format
+    src = blocks.vector_source_c(input_samples.tolist(), False, 1, [])
+
+    # Instantiate the symbol sync block
+    simple_squelch_block = analog.simple_squelch_cc((threshold_dB), alpha)
+
+    # Sink to collect the output
+    sink = blocks.vector_sink_c(1, 1024 * 4)
+
+    # Connect blocks and run
+    tb = gr.top_block()
+    tb.connect(src, simple_squelch_block, sink)
     tb.run()
 
     return np.array(sink.data())

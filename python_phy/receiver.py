@@ -3,7 +3,7 @@ import scipy
 from abc import ABC, abstractmethod
 from typing import Literal, get_args
 
-from demodulation import symbol_sync, demodulate_frequency, binary_slicer, TEDType
+from demodulation import symbol_sync, demodulate_frequency, binary_slicer, simple_squelch, TEDType
 from modulation import gaussian_fir_taps, half_sine_fir_taps
 from filters import single_pole_iir_filter
 from packet_utils import (
@@ -22,10 +22,22 @@ DemodulationType = Literal[
     "BAND_PASS",
 ]
 
+# Receiver protocols
+ReceiverType = Literal[
+    "BLE",
+    "IEEE802154",
+]
+
 
 # Define abstract class template for Receivers
 # Methods are then overridden by the children classes
 class Receiver(ABC):
+    # Class variables (overriden in derived classes)
+    transmission_rate: float = None  # baud/s
+    fsk_deviation: float = None  # Hz
+    crc_size: int = None  # Bytes
+    max_packet_len: int = None  # Bytes
+
     @abstractmethod  # Receives an array of complex data and returns hard decision array
     def demodulate(
         self,
@@ -43,12 +55,25 @@ class Receiver(ABC):
     def demodulate_to_packet(self, *args, **kwargs) -> list[dict]:
         pass
 
+    def set_symbol_sync_parameters(  # Set specific symbol sync parameters
+        self,
+        TED_gain: float = 1.0,
+        loop_BW: float = 0.045,
+        damping: float = 1.0,
+        max_deviation: float = 1.5,
+    ) -> None:
+        self._symbol_sync_param_TED_gain = TED_gain
+        self._symbol_sync_param_loop_BW = loop_BW
+        self._symbol_sync_param_damping = damping
+        self._symbol_sync_param_max_deviation = max_deviation
+
 
 class ReceiverBLE(Receiver):
     # Class variables
-    transmission_rate = 1e6  # BLE 1 Mb/s
-    fsk_deviation_ble: float = 250e3  # Hz
+    transmission_rate: float = 1e6  # BLE 1 Mb/s
+    fsk_deviation: float = 250e3  # Hz
     crc_size: int = 3  # 3 bytes CRC for BLE
+    max_packet_len: int = 255  # Bytes
 
     def __init__(self, fs: int):
         # Instance variables
@@ -62,6 +87,8 @@ class ReceiverBLE(Receiver):
         gauss_taps /= np.sum(gauss_taps)  # Unitary gain
         self.gauss_taps = gauss_taps
 
+        self.set_symbol_sync_parameters()
+
     # Receives an array of complex data and returns hard decision array
     def demodulate(
         self,
@@ -74,30 +101,33 @@ class ReceiverBLE(Receiver):
         if demodulation_type == "INSTANTANEOUS_FREQUENCY":
             # Low pass matched filter (Gaussian kernel)
             # Generate Gaussian taps and convolve with rectangular window
-            iq_samples = scipy.signal.convolve(iq_samples, self.gauss_taps, mode="full")
+            iq_samples = scipy.signal.correlate(iq_samples, self.gauss_taps, mode="full")
+
+            # Squelch
+            iq_samples = simple_squelch(iq_samples, threshold_dB=-20, alpha=0.3)
 
             # Frequency demodulation
-            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_ble))
+            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation))
             freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
             # Matched filter after frequency demodulation
-            before_symbol_sync = scipy.signal.convolve(freq_samples, self.gauss_taps, mode="full")
+            # before_symbol_sync = scipy.signal.correlate(freq_samples, self.gauss_taps, mode="full")
+            before_symbol_sync = freq_samples
 
         elif demodulation_type == "BAND_PASS":
-            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation_ble * np.arange(len(self.gauss_taps)) / self.fs)
+            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation * np.arange(len(self.gauss_taps)) / self.fs)
             gauss_bandpass_lower = self.gauss_taps / complex_exp
             gauss_bandpass_higher = self.gauss_taps * complex_exp
 
             # Band-pass filter (complex signal, complex filter, complex output)
-            iq_samples_lower = scipy.signal.convolve(iq_samples, gauss_bandpass_lower, mode="full")
-            iq_samples_higher = scipy.signal.convolve(iq_samples, gauss_bandpass_higher, mode="full")
+            iq_samples_lower = scipy.signal.correlate(iq_samples, gauss_bandpass_lower, mode="full")
+            iq_samples_higher = scipy.signal.correlate(iq_samples, gauss_bandpass_higher, mode="full")
 
             # Magnitude squared and subtract
             iq_samples_lower_square = iq_samples_lower * np.conj(iq_samples_lower)
             iq_samples_higher_square = iq_samples_higher * np.conj(iq_samples_higher)
-            iq_samples_lower_square /= np.max(iq_samples_lower_square)
-            iq_samples_higher_square /= np.max(iq_samples_higher_square)
             before_symbol_sync = np.real(iq_samples_higher_square - iq_samples_lower_square)
+            before_symbol_sync /= np.max(before_symbol_sync)
 
         else:
             raise ValueError(
@@ -105,7 +135,15 @@ class ReceiverBLE(Receiver):
             )
 
         # Symbol synchronisation
-        bit_samples = symbol_sync(before_symbol_sync, sps=self.sps, ted_type=ted_type)
+        bit_samples = symbol_sync(
+            before_symbol_sync,
+            sps=self.sps,
+            ted_type=ted_type,
+            TED_gain=self._symbol_sync_param_TED_gain,
+            loop_BW=self._symbol_sync_param_loop_BW,
+            damping=self._symbol_sync_param_damping,
+            max_deviation=self._symbol_sync_param_max_deviation,
+        )
         bit_samples = binary_slicer(bit_samples)
 
         return bit_samples
@@ -155,8 +193,8 @@ class ReceiverBLE(Receiver):
         demodulation_type: DemodulationType = "INSTANTANEOUS_FREQUENCY",
         ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
         base_address: int = 0x12345678,
-        preamble_threshold: int = 2,
-    ):
+        preamble_threshold: int = 4,
+    ) -> list[dict]:
         """Receive IQ data and return dictionary with detected packets."""
         bit_samples = self.demodulate(
             iq_samples, demodulation_type=demodulation_type, ted_type=ted_type
@@ -170,10 +208,10 @@ class ReceiverBLE(Receiver):
 
 class Receiver802154(Receiver):
     # Class variables
-    transmission_rate = 2e6  # IEEE 802.15.4 2 Mchip/s
-    fsk_deviation_802154: float = 500e3  # Hz
+    transmission_rate: float = 2e6  # IEEE 802.15.4 2 Mchip/s
+    fsk_deviation: float = 500e3  # Hz
     crc_size: int = 2  # 2 bytes CRC for IEEE 802.15.4
-    max_packet_len: int = 127
+    max_packet_len: int = 127  # Bytes
 
     # Chip mapping for differential MSK encoding
     chip_mapping: np.ndarray = np.array(
@@ -213,6 +251,8 @@ class Receiver802154(Receiver):
         rect_taps /= np.sum(rect_taps)  # Unitary gain
         self.rect_taps = rect_taps
 
+        self.set_symbol_sync_parameters()
+
     # Receives an array of complex data and returns hard decision array
     def demodulate(
         self,
@@ -224,38 +264,48 @@ class Receiver802154(Receiver):
 
         if demodulation_type == "INSTANTANEOUS_FREQUENCY":
             # Low pass matched filter (half sine shape taps)
-            iq_samples = scipy.signal.convolve(iq_samples, self.hss_taps, mode="full")
+            iq_samples = scipy.signal.correlate(iq_samples, self.hss_taps, mode="full")
+
+            # Squelch
+            iq_samples = simple_squelch(iq_samples, threshold_dB=-20, alpha=0.3)
 
             # Frequency demodulation
-            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation_802154))
+            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation))
             freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
             # Matched filter after frequency demodulation
-            before_symbol_sync = scipy.signal.convolve(freq_samples, self.rect_taps, mode="full")
+            before_symbol_sync = scipy.signal.correlate(freq_samples, self.rect_taps, mode="full")
 
         elif demodulation_type == "BAND_PASS":
-            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation_802154 * np.arange(len(self.rect_taps)) / self.fs)
+            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation * np.arange(len(self.rect_taps)) / self.fs)
             rect_bandpass_lower = self.rect_taps / complex_exp
             rect_bandpass_higher = self.rect_taps * complex_exp
 
             # Band-pass filter (complex signal, complex filter, complex output)
-            iq_samples_lower = scipy.signal.convolve(iq_samples, rect_bandpass_lower, mode="full")
-            iq_samples_higher = scipy.signal.convolve(iq_samples, rect_bandpass_higher, mode="full")
+            iq_samples_lower = scipy.signal.correlate(iq_samples, rect_bandpass_lower, mode="full")
+            iq_samples_higher = scipy.signal.correlate(iq_samples, rect_bandpass_higher, mode="full")
 
             # Magnitude squared and subtract
             iq_samples_lower_square = iq_samples_lower * np.conj(iq_samples_lower)
             iq_samples_higher_square = iq_samples_higher * np.conj(iq_samples_higher)
-            iq_samples_lower_square /= np.max(iq_samples_lower_square)
-            iq_samples_higher_square /= np.max(iq_samples_higher_square)
-
             before_symbol_sync = np.real(iq_samples_higher_square - iq_samples_lower_square)
+            before_symbol_sync /= np.max(before_symbol_sync)
+
         else:
             raise ValueError(
                 f"Invalid demodulation type '{demodulation_type}'. Choose from {list(get_args(DemodulationType))}"
             )
 
         # Symbol synchronisation
-        bit_samples = symbol_sync(before_symbol_sync, sps=self.spc, ted_type=ted_type)
+        bit_samples = symbol_sync(
+            before_symbol_sync,
+            sps=self.spc,
+            ted_type=ted_type,
+            TED_gain=self._symbol_sync_param_TED_gain,
+            loop_BW=self._symbol_sync_param_loop_BW,
+            damping=self._symbol_sync_param_damping,
+            max_deviation=self._symbol_sync_param_max_deviation,
+        )
         bit_samples = binary_slicer(bit_samples)
 
         return bit_samples
@@ -280,15 +330,19 @@ class Receiver802154(Receiver):
                 chip_samples[preamble:payload_start], num_bytes=1, chip_mapping=self.chip_mapping, threshold=10
             )  # Payload length in bytes
             payload_length = payload_length[0]
-            assert payload_length <= self.max_packet_len, "Maximum payload length is 127 bytes"
+            if payload_length > self.max_packet_len:  # Maximum payload length is 127 bytes
+                continue  # The packet is lost (not valid)
 
-            # Payload reading
-            payload = pack_chips_to_bytes(
-                chip_samples[payload_start : payload_start + payload_length * 64],
-                num_bytes=payload_length,
-                chip_mapping=self.chip_mapping,
-                threshold=32,  # Once the preamble and length are detected, just return closest guess
-            )
+            try:
+                # Payload reading
+                payload = pack_chips_to_bytes(
+                    chip_samples[payload_start : payload_start + payload_length * 64],
+                    num_bytes=payload_length,
+                    chip_mapping=self.chip_mapping,
+                    threshold=32,  # Once the preamble and length are detected, just return closest guess
+                )
+            except AssertionError as e:  # There was a problem processing the packet
+                continue
 
             crc_check = None
             # CRC check
@@ -314,7 +368,7 @@ class Receiver802154(Receiver):
         ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
         preamble_threshold: int = 12,
         CRC_included: bool = True,
-    ):
+    ) -> list[dict]:
         """Receive IQ data and return dictionary with detected packets."""
         bit_samples = self.demodulate(
             iq_samples, demodulation_type=demodulation_type, ted_type=ted_type

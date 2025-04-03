@@ -1,6 +1,9 @@
 import numpy as np
 import scipy
-from visualisation import compare_bits_with_reference
+import concurrent.futures
+from demodulation import TEDType
+from receiver import DemodulationType, Receiver, ReceiverBLE, Receiver802154, ReceiverType
+from snr_related import add_awgn_signal_present
 
 
 # Pads iq_samples_interference with zeros at the beginning (delay_zero_padding)
@@ -148,3 +151,101 @@ def compute_ber_vs_frequency(
             bit_error_rates[index] = np.nan  # Not detected packet (subtraction probably messed up with preamble)
 
     return bit_error_rates
+
+
+# Compare two byte arrays and return a bitwise array of differences
+def compare_bits_with_reference(payload: np.ndarray, reference_payload: np.ndarray) -> np.ndarray:
+    if payload.shape != reference_payload.shape:
+        return None
+
+    error_bits = np.bitwise_xor(reference_payload, payload)  # Compute XOR to get differing bits
+    return np.unpackbits(error_bits, bitorder="little")  # Unpack to binary representation
+
+
+# Process one noise realisation: adds noise, demodulates, and categorises the packet result.
+def helper_process_noise_realisation(
+    iq_samples: np.ndarray,
+    snr: float,
+    sample_interval: tuple,
+    receiver: Receiver,
+    demodulation_type: DemodulationType,
+    ted_type: TEDType,
+) -> str:
+    """Process one noise realisation: adds noise, demodulates, and categorises the packet result."""
+    iq_noisy = add_awgn_signal_present(iq_samples, snr_db=snr, sample_interval=sample_interval)
+
+    try:
+        received_packets = receiver.demodulate_to_packet(
+            iq_noisy, demodulation_type=demodulation_type, ted_type=ted_type
+        )
+    except ValueError as e:
+        if "The binary list" in str(e):
+            return "preamble_loss"
+        else:
+            raise
+
+    if not received_packets:
+        return "preamble_loss"
+    elif not received_packets[0]["crc_check"]:
+        return "crc_failure"
+    else:
+        return "delivered"
+
+
+# Computes the PDR and its standard deviation over a range of SNR values using concurrent futures.
+def pdr_vs_snr_analysis_parallel(
+    iq_samples: np.ndarray,
+    snr_range: range,
+    sample_interval: tuple,
+    fs: float,
+    receiver_type: ReceiverType,
+    demodulation_type: DemodulationType,
+    ted_type: TEDType,
+    noise_realisations: int,
+) -> dict:
+    """Computes the PDR and its standard deviation over a range of SNR values using concurrent futures."""
+    receiver_classes: dict[str, type] = {"BLE": ReceiverBLE, "IEEE802154": Receiver802154}
+    try:
+        # Create a new receiver for each SNR value in the worker below
+        receiver_factory = receiver_classes[receiver_type]
+    except KeyError:
+        raise ValueError(f"Invalid receiver type '{receiver_type}'. Choose from {list(receiver_classes.keys())}")
+
+    results: dict = {}
+
+    for snr in snr_range:
+        receiver = receiver_factory(fs)
+        delivered_count = 0
+        preamble_loss_count = 0
+        crc_failure_count = 0
+
+        # Use ProcessPoolExecutor for CPU-bound tasks
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = [
+                executor.submit(
+                    helper_process_noise_realisation,
+                    iq_samples,
+                    snr,
+                    sample_interval,
+                    receiver,
+                    demodulation_type,
+                    ted_type,
+                )
+                for _ in range(noise_realisations)
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result == "delivered":
+                    delivered_count += 1
+                elif result == "preamble_loss":
+                    preamble_loss_count += 1
+                elif result == "crc_failure":
+                    crc_failure_count += 1
+
+        results[snr] = {
+            "pdr_ratio": delivered_count / noise_realisations,
+            "preamble_loss_ratio": preamble_loss_count / noise_realisations,
+            "crc_failure_ratio": crc_failure_count / noise_realisations,
+        }
+
+    return results
