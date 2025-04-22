@@ -257,8 +257,8 @@ class Receiver802154(Receiver):
     def demodulate(
         self,
         iq_samples: np.ndarray,
-        demodulation_type: DemodulationType = "INSTANTANEOUS_FREQUENCY",
-        ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
+        demodulation_type: DemodulationType = "BAND_PASS",
+        ted_type: TEDType = "GARDNER",
     ) -> np.ndarray:
         """Receives an array of complex data and returns hard decision array."""
 
