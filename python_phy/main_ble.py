@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from data_io import read_iq_data
-from filters import add_white_gaussian_noise
 from visualisation import subplots_iq_spectrogram_bits, plot_payload
 from receiver import ReceiverBLE
 
@@ -16,9 +15,6 @@ def main(filename: str, fs: float) -> None:
 
     # Open file
     iq_samples = read_iq_data(f"../capture_nRF/data/new/{filename}")
-
-    # Simulate channel
-    # iq_samples = add_awgn(iq_samples, snr_db=4)
 
     # Initialise the receiver and process data
     receiver = ReceiverBLE(fs=fs)

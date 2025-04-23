@@ -252,7 +252,7 @@ def create_802154_phy_packet(payload: np.ndarray, append_crc: bool) -> np.ndarra
     └──────────────────────────────┴────────┴───────────────────────────┴────────────────┘
     """
     crc_size = 2
-    max_payload_size = 5  # Bytes
+    max_payload_size = 127  # Bytes
     max_payload_size_with_crc = max_payload_size - crc_size  # Bytes
     preamble = np.array([0x00, 0x00, 0x00, 0x00, 0xA7], dtype=np.uint8)  # Set the preamble
 
