@@ -90,48 +90,23 @@ def main(affected, interference):
     iq_interference = interference_transmitter.modulate(iq_interference, zero_padding=500)
 
     iq_interference_known = read_iq_data(f"{relative_path}{interference_filename}")
+    # iq_interference = iq_interference_known
 
-    # Plot the synthesised signal in its own figure
-    fig1, ax1 = plt.subplots(figsize=(10, 4))
-    ax1.plot(np.real(iq_interference), linestyle="-", label="Real")
-    ax1.plot(np.imag(iq_interference), linestyle="-", label="Imag")
-    ax1.set_title("Synthesised")
-    ax1.set_xlabel("Sample Index")
-    ax1.set_ylabel("Amplitude")
-    ax1.set_ylim((-1.5, 1.5))
-    ax1.grid(True)
-    ax1.legend()
-    fig1.tight_layout()
+    """Subtract the synthesised interference and demodulate (blind analysis)"""
+    freq_range = range(0, 35000, 50)
+    subtracted = subtract_interference_wrapper(
+        affected=iq_affected, interference=iq_interference, fs=fs, freq_offsets=freq_range, verbose=True
+    )
+    subplots_iq(
+        [iq_affected, iq_interference, subtracted], fs, ["Interfered packet", "Interference", "Subtracted"], show=False
+    )
 
-    # Plot the known signal in a separate figure
-    fig2, ax2 = plt.subplots(figsize=(10, 4))
-    ax2.plot(np.real(iq_interference_known), linestyle="-", label="Real")
-    ax2.plot(np.imag(iq_interference_known), linestyle="-", label="Imag")
-    ax2.set_title("Known")
-    ax2.set_xlabel("Sample Index")
-    ax2.set_ylabel("Amplitude")
-    ax2.set_ylim((-1.5, 1.5))
-    ax2.grid(True)
-    ax2.legend()
-    fig2.tight_layout()
-
-    plt.show()
-
-    # """Subtract the synthesised interference and demodulate (blind analysis)"""
-    # freq_range = range(-12000, 12000, 20)
-    # subtracted = subtract_interference_wrapper(
-    #     affected=iq_affected, interference=iq_interference, fs=fs, freq_offsets=freq_range, verbose=True
-    # )
-    # subplots_iq(
-    #     [iq_affected, iq_interference, subtracted], fs, ["Interfered packet", "Interference", "Subtracted"], show=False
-    # )
-
-    # # Initialise the receiver and process data
-    # bit_samples = affected_receiver.demodulate(subtracted)  # From IQ samples to hard decisions
-    # reference_packet: list[dict] = affected_receiver.process_phy_packet(bit_samples)  # From hard decisions to packets
-    # if reference_packet:
-    #     reference_packet: dict = reference_packet[0]
-    #     plot_payload(reference_packet)
+    # Initialise the receiver and process data
+    bit_samples = affected_receiver.demodulate(subtracted)  # From IQ samples to hard decisions
+    reference_packet: list[dict] = affected_receiver.process_phy_packet(bit_samples)  # From hard decisions to packets
+    if reference_packet:
+        reference_packet: dict = reference_packet[0]
+        plot_payload(reference_packet)
 
     # """BER analysis with frequency variations (non-blind analysis)"""
     # bit_error_rates = compute_ber_vs_frequency(
@@ -143,7 +118,7 @@ def main(affected, interference):
     #     receiver=affected_receiver,
     # )
     # plot_ber_vs_frequency_offset(freq_range, bit_error_rates, show=False)
-    # plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":
