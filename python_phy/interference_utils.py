@@ -145,6 +145,7 @@ def compute_ber_vs_frequency(
             interfered_packet: dict = interfered_packet[0]
             bit2bit_difference = compare_bits_with_reference(interfered_packet["payload"], reference_packet["payload"])
             if bit2bit_difference is None:  # Payload sizes don't match. Probably due to interference in the preamble
+                print(f"Warning: Payload size mismatch at frequency offset {freq} Hz. Skipping BER computation.")
                 bit_error_rates[index] = np.nan
                 continue
             ber = sum(bit2bit_difference) / len(bit2bit_difference) * 100
