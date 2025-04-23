@@ -77,6 +77,7 @@ def subtract_interference_wrapper(
         print(f"{est_amplitude = :.2f} [-]")
         print(f"{est_phase = :.2f} [rad]")
         print(f"{est_samples_shift = } [samples]")
+
     # Update parameters if not defined
     amplitude, phase, samples_shift = map(
         lambda old, new: new if old is None else old,
@@ -106,8 +107,10 @@ def find_interference_parameters(
     for frequency in freq_offsets:
         rotated_interference = multiply_by_complex_exponential(interference, fs=fs, freq=frequency)
         correlation = correlation_wrapper(affected, rotated_interference)
-        max_idx = np.argmax(np.abs(correlation))
-        curr_amplitude = np.abs(correlation[max_idx])
+
+        abs_corr = np.abs(correlation)
+        max_idx = np.argmax(abs_corr)
+        curr_amplitude = abs_corr[max_idx]
 
         if curr_amplitude > best_amplitude:
             best_amplitude = curr_amplitude
