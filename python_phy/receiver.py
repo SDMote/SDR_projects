@@ -364,8 +364,8 @@ class Receiver802154(Receiver):
     def demodulate_to_packet(
         self,
         iq_samples: np.ndarray,
-        demodulation_type: DemodulationType = "INSTANTANEOUS_FREQUENCY",
-        ted_type: TEDType = "MOD_MUELLER_AND_MULLER",
+        demodulation_type: DemodulationType = "BAND_PASS",
+        ted_type: TEDType = "GARDNER",
         preamble_threshold: int = 12,
         CRC_included: bool = True,
     ) -> list[dict]:
