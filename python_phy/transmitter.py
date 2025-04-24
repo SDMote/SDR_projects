@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from abc import ABC, abstractmethod
 
 from modulation import modulate_frequency, pulse_shape_bits_fir, gaussian_fir_taps, oqpsk_modulate, half_sine_fir_taps
 from packet_utils import (
@@ -11,11 +12,26 @@ from packet_utils import (
 )
 
 
-class TransmitterBLE:
+class Transmitter(ABC):
+    # Class variables (overriden in derived classes)
+    transmission_rate: float = None  # symbol/s or chip/s
+    max_payload_size: int = None
+
+    @abstractmethod
+    def modulate(self, bits_or_chips: np.ndarray, zero_padding: int = 0) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def process_phy_payload(self, payload: np.ndarray, **kwargs) -> np.ndarray:
+        pass
+
+
+class TransmitterBLE(Transmitter):
     # Class variables
     transmission_rate: float = 1e6  # BLE 1 Mb/s
     fsk_deviation_ble: float = 250e3  # Hz
     bt: float = 0.5  # Bandwidth-bit period product for Gaussian pulse shaping
+    max_payload_size: int = 255
 
     def __init__(self, fs: int | float):
         # Instance variables
@@ -58,7 +74,7 @@ class TransmitterBLE:
         return bits_packet
 
 
-class Transmitter802154:
+class Transmitter802154(Transmitter):
     # Class variables
     transmission_rate: float = 2e6  # 2 Mchip/s
     max_payload_size: int = 127
@@ -91,7 +107,7 @@ class Transmitter802154:
         self.fs = fs  # Sampling rate
         # For now, assume sampling rate is an integer multiple of transmission rate.
         # For generalisation, it's necessary to implement a rational resampler to generate the final IQ signal.
-        self.sps: int = int(2 * self.fs / self.transmission_rate)  # Samples per chip
+        self.sps: int = int(2 * self.fs / self.transmission_rate)  # Samples per OQPSK symbol
 
     # Receives a chip uint32 array and returns IQ O-QPSK modulated complex signal.
     def modulate(self, chips: np.ndarray, zero_padding: int = 0) -> np.ndarray:
