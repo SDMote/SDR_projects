@@ -1,17 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
-
-def adc_quantise(iq: np.ndarray, vmax: float, bits: int) -> np.ndarray:
-    """Simulate a linear symmetric ADC w"""
-    levels = 2**bits - 1  # Odd number of levels
-    level_size = 2 * vmax / (levels - 1)
-
-    # Clip and quantise
-    real_q = level_size * np.round(np.clip(iq.real, -vmax, vmax) / level_size)
-    imag_q = level_size * np.round(np.clip(iq.imag, -vmax, vmax) / level_size)
-
-    return real_q + 1j * imag_q
+from receiver import adc_quantise
 
 
 fs = 500  # Sampling rate (Hz)
