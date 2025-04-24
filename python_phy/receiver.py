@@ -51,7 +51,7 @@ class Receiver(ABC):
     def process_phy_packet(self, *args, **kwargs) -> list[dict]:
         pass
 
-    @abstractmethod  # Encapsulte previous methods in one call
+    @abstractmethod  # Wrap previous methods in one call
     def demodulate_to_packet(self, *args, **kwargs) -> list[dict]:
         pass
 

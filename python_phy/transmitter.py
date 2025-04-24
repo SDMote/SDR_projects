@@ -25,6 +25,10 @@ class Transmitter(ABC):
     def process_phy_payload(self, payload: np.ndarray, **kwargs) -> np.ndarray:
         pass
 
+    @abstractmethod  # Wrap previous methods in one call
+    def modulate_from_payload(self, *args, **kwargs) -> np.ndarray:
+        pass
+
 
 class TransmitterBLE(Transmitter):
     # Class variables
@@ -72,6 +76,14 @@ class TransmitterBLE(Transmitter):
         bits_packet = unpack_uint8_to_bits(byte_packet)
 
         return bits_packet
+
+    # Generates IQ data from physical payload
+    def modulate_from_payload(
+        self, payload: np.ndarray, base_address: int = 0x12345678, zero_padding: int = 0
+    ) -> np.ndarray:
+        """Generates IQ data from physical payload"""
+        bits = self.process_phy_payload(payload, base_address)
+        return self.modulate(bits, zero_padding)
 
 
 class Transmitter802154(Transmitter):
@@ -135,3 +147,9 @@ class Transmitter802154(Transmitter):
         chips = map_nibbles_to_chips(byte_packet, self.chip_mapping, return_string=False)
 
         return chips
+
+    # Generates IQ data from physical payload
+    def modulate_from_payload(self, payload: np.ndarray, append_crc: bool = True, zero_padding: int = 0) -> np.ndarray:
+        """Generates IQ data from physical payload"""
+        chips = self.process_phy_payload(payload, append_crc)
+        return self.modulate(chips, zero_padding)
