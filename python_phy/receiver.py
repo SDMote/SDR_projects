@@ -381,7 +381,7 @@ class Receiver802154(Receiver):
 
 
 def adc_quantise(iq: np.ndarray, vmax: float, bits: int) -> np.ndarray:
-    """Simulate a linear symmetric ADC w"""
+    """Simulate a linear symmetric ADC"""
     levels = 2**bits - 1  # Odd number of levels
     level_size = 2 * vmax / (levels - 1)
 
