@@ -35,35 +35,6 @@ def add_white_gaussian_noise(signal: np.ndarray, noise_power: float, noise_power
     return signal + noise
 
 
-# DEPRECATED
-# Adds white Gaussian noise to the input signal such that the SNR within a
-# specified bandwidth centered at zero, capitalising on Parseval's theorem.
-# def add_awgn_band_limited(signal: np.ndarray, snr_db: float, fs: float, bw: float) -> np.ndarray:
-#     """
-#     Adds white Gaussian noise to the input signal such that the SNR within a
-#     specified bandwidth centered at zero, capitalising on Parseval's theorem.
-#     """
-#     N = len(signal)  # signal can be real or complex
-#     dft_signal = np.fft.fft(signal)  # Compute FFT
-#     freqs = np.fft.fftfreq(N, d=(1 / fs))  # Frequency FFT bins
-#     band_inds = np.where(np.abs(freqs) <= bw / 2)[0]  # Frequency FFT bins around zero
-
-#     # Parseval for discrete samples: mean(|x|^2) = sum(|X|^2) / N^2
-#     signal_power_band = np.sum(np.abs(dft_signal[band_inds]) ** 2) / (N**2)
-#     snr_linear = 10 ** (snr_db / 10)
-
-#     # Here we are scaling the noise power so that the noise power **within the band** yields
-#     # the desired SNR in the band. The noise is still generated over the entire sampled bandwidth.
-#     # if bw = fs, then the signal power is simply computed over the entire sampled bandwidth, which,
-#     # following Parseval's theorem, is equal to np.mean(np.abs(signal)**2) in the time domain.
-#     noise_power = (signal_power_band / snr_linear) * (fs / bw)
-
-#     # Generate AWGN with the computed noise power (variance)
-#     noise = add_white_gaussian_noise(np.zeros_like(signal), noise_power, noise_power_db=False)
-
-#     return signal + noise
-
-
 def compute_snr_from_pearson(signal: np.ndarray, noisy_signal: np.ndarray, snr_db: bool = True) -> float:
     pearson = np.abs(np.corrcoef(signal, noisy_signal)[0, 1])
     snr = pearson**2 / (1 - pearson**2)
