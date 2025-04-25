@@ -14,7 +14,7 @@ from packet_utils import (
 
 class Transmitter(ABC):
     # Class variables (overriden in derived classes)
-    max_payload_size: int = None
+    _max_payload_size: int = None
 
     @abstractmethod
     def modulate(self, bits_or_chips: np.ndarray, zero_padding: int = 0) -> np.ndarray:
@@ -32,9 +32,9 @@ class Transmitter(ABC):
 class TransmitterBLE(Transmitter):
     # Class variables
 
-    fsk_deviation_ble: float = 250e3  # Hz
-    bt: float = 0.5  # Bandwidth-bit period product for Gaussian pulse shaping
-    max_payload_size: int = 255
+    _fsk_deviation_ble: float = 250e3  # Hz
+    _bt: float = 0.5  # Bandwidth-bit period product for Gaussian pulse shaping
+    _max_payload_size: int = 255
 
     def __init__(self, fs: int | float, transmission_rate: float = 1e6):
         # Instance variables
@@ -49,14 +49,14 @@ class TransmitterBLE(Transmitter):
         """Receives a binary array and returns IQ GFSK modulated complex signal."""
 
         # Generate Gaussian taps and convolve with rectangular window
-        gauss_taps = gaussian_fir_taps(sps=self.sps, ntaps=self.sps, bt=self.bt)
+        gauss_taps = gaussian_fir_taps(sps=self.sps, ntaps=self.sps, bt=self._bt)
         gauss_taps = scipy.signal.convolve(gauss_taps, np.ones(self.sps))
 
         # Apply Gaussian pulse shaping with BT = 0.5 (BLE PHY specification)
         pulse_shaped_symbols = pulse_shape_bits_fir(bits, fir_taps=gauss_taps, sps=self.sps)
 
         # Frequency modulation
-        iq_signal = modulate_frequency(pulse_shaped_symbols, self.fsk_deviation_ble, self.fs)
+        iq_signal = modulate_frequency(pulse_shaped_symbols, self._fsk_deviation_ble, self.fs)
 
         # Append zeros
         iq_signal = np.concatenate(
@@ -93,7 +93,7 @@ class TransmitterBLE(Transmitter):
 class Transmitter802154(Transmitter):
     # Class variables
     _transmission_rate: float = 2e6  # 2 Mchip/s
-    max_payload_size: int = 127
+    _max_payload_size: int = 127
 
     # Chip mapping for IEEE 802.15.4 O-QPSK DSSS encoding
     chip_mapping: np.ndarray = np.array(
