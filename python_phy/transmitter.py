@@ -31,18 +31,19 @@ class Transmitter(ABC):
 
 class TransmitterBLE(Transmitter):
     # Class variables
-
-    _fsk_deviation_ble: float = 250e3  # Hz
+    _valid_rates = (1e6, 2e6)  # BLE 1Mb/s or 2Mb/s
     _bt: float = 0.5  # Bandwidth-bit period product for Gaussian pulse shaping
     _max_payload_size: int = 255
 
     def __init__(self, fs: int | float, transmission_rate: float = 1e6):
         # Instance variables
+        self.transmission_rate: float = transmission_rate  # BLE 1Mb/s or 2Mb/s
+        self._fsk_deviation: float = self.transmission_rate * 0.25  # Hz
+
         self.fs = fs  # Sampling rate
-        self.set_transmission_rate(transmission_rate)  # BLE 1 Mb/s
         # For now, assume sampling rate is an integer multiple of transmission rate.
         # For generalisation, it's necessary to implement a rational resampler to generate the final IQ signal.
-        self.sps: int = int(self.fs / self._transmission_rate)  # Samples per symbol
+        self.sps: int = int(self.fs / self.transmission_rate)  # Samples per symbol
 
     # Receives a binary array and returns IQ GFSK modulated compplex signal.
     def modulate(self, bits: np.ndarray, zero_padding: int = 0) -> np.ndarray:
@@ -56,7 +57,7 @@ class TransmitterBLE(Transmitter):
         pulse_shaped_symbols = pulse_shape_bits_fir(bits, fir_taps=gauss_taps, sps=self.sps)
 
         # Frequency modulation
-        iq_signal = modulate_frequency(pulse_shaped_symbols, self._fsk_deviation_ble, self.fs)
+        iq_signal = modulate_frequency(pulse_shaped_symbols, self._fsk_deviation, self.fs)
 
         # Append zeros
         iq_signal = np.concatenate(
@@ -85,9 +86,16 @@ class TransmitterBLE(Transmitter):
         bits = self.process_phy_payload(payload, base_address)
         return self.modulate(bits, zero_padding)
 
-    def set_transmission_rate(self, transmission_rate: float):
-        assert transmission_rate in (1e6, 2e6), "BLE transmission rate must be 1 Mb/s or 2 Mb/s"
-        self._transmission_rate = transmission_rate
+    @property
+    def transmission_rate(self) -> float:
+        return self._transmission_rate
+
+    @transmission_rate.setter
+    def transmission_rate(self, rate: float) -> None:
+        if rate not in self._valid_rates:
+            raise ValueError(f"BLE transmission rate must be one of {self._valid_rates!r}")
+        self._transmission_rate = rate
+        self._fsk_deviation = self.transmission_rate * 0.25
 
 
 class Transmitter802154(Transmitter):

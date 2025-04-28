@@ -18,6 +18,7 @@ class SimulationConfig:
     sampling_rate: float  # Samples per second
     protocol_high: ReceiverType  # BLE or IEEE 802.15.4
     protocol_low: ReceiverType
+    ble_rate: float  # 1 Mb/s or 2 Mb/s
     amplitude_high: float  # Amplitude for higher-power signal (fixed at ADC vmax)
     amplitude_low: float  # Amplitude for lower-power signal (swept)
     snr_low_db: float  # SNR in (dB) relative to the lower power generated signal
@@ -45,22 +46,36 @@ class SimulatorSIC:
         """
         self.cfg = config
 
-        # Assign transmitter and receiver classes respectively
-        protocol_map = {
-            "BLE": (TransmitterBLE, ReceiverBLE),
-            "802154": (Transmitter802154, Receiver802154),
+        # Map protocol names to their (Tx class, Rx class, default rate)
+        proto_map: dict[
+            str,
+            tuple[
+                Type[Transmitter],
+                Type[Receiver],
+                float,  # Default BLE rate, ignored for non‐BLE
+            ],
+        ] = {
+            "BLE": (TransmitterBLE, ReceiverBLE, config.ble_rate),
+            "802154": (Transmitter802154, Receiver802154, 0.0),  # Rate unused
         }
-        TransmitterClassHigh: Type[Transmitter]
-        ReceiverClassHigh: Type[Receiver]
-        TransmitterClassLow: Type[Transmitter]
-        ReceiverClassLow: Type[Receiver]
-        TransmitterClassHigh, ReceiverClassHigh = protocol_map[self.cfg.protocol_high]
-        TransmitterClassLow, ReceiverClassLow = protocol_map[self.cfg.protocol_low]
 
-        self.transmitter_high = TransmitterClassHigh(config.sampling_rate)
-        self.receiver_high = ReceiverClassHigh(config.sampling_rate)
-        self.transmitter_low = TransmitterClassLow(config.sampling_rate)
-        self.receiver_low = ReceiverClassLow(config.sampling_rate)
+        # Helper to instantiate Tx/Rx with or without rate param
+        def _map_protocol(proto: str):
+            TxClass, RxClass, rate = proto_map[proto]
+            if proto == "BLE":  # Pass both sampling_rate and transmission_rate
+
+                return (
+                    TxClass(self.cfg.sampling_rate, transmission_rate=rate),
+                    RxClass(self.cfg.sampling_rate, transmission_rate=rate),
+                )
+            else:  # Only pass sampling_rate
+                return (
+                    TxClass(self.cfg.sampling_rate),
+                    RxClass(self.cfg.sampling_rate),
+                )
+
+        self.transmitter_high, self.receiver_high = _map_protocol(self.cfg.protocol_high)
+        self.transmitter_low, self.receiver_low = _map_protocol(self.cfg.protocol_low)
 
     # Wrapper to generate baseband IQ samples for a single transmitter with given parameters.
     def _generate_signal(
@@ -131,6 +146,7 @@ class SimulatorSIC:
         iq_high = fractional_delay_fir_filter(iq_high, np.random.uniform(*self.cfg.sample_shift_range_high))
         iq_low = fractional_delay_fir_filter(iq_low, np.random.uniform(*self.cfg.sample_shift_range_low))
         iq_high, iq_low = self._zero_padding(iq_high, iq_low, padding=self.cfg.padding)  # Ensure same signals length
+
         # O-QPSK and FSK modulated signals' power is their amplitude squared
         noise_power = self.cfg.amplitude_low**2 / (10 ** (snr_low_db / 10))
         rx_iq: np.ndarray = add_white_gaussian_noise(iq_high + iq_low, noise_power, noise_power_db=False)
@@ -176,6 +192,7 @@ if __name__ == "__main__":
         sampling_rate=10e6,  # Samples per second
         protocol_high="802154",  # BLE or IEEE 802.15.4
         protocol_low="BLE",
+        ble_rate=1e6,  # 1 Mb/s or 2 Mb/s
         amplitude_high=0.9,  # Amplitude for higher-power signal (fixed)
         amplitude_low=0.3,  # Amplitude for lower-power signal (swept)
         snr_low_db=60,  # SNR in (dB) relative to the lower power generated signal
@@ -183,8 +200,8 @@ if __name__ == "__main__":
         fine_step=None,  # Step size (Hz) for the fine search
         fine_window=None,  # Half-width (Hz) of the window around best coarse frequency
         payload_len_high=10,  # Bytes in high-power payload
-        payload_len_low=100,  # Bytes in low-power payload
-        num_trials=1,  # Monte Carlo trials per power difference
+        payload_len_low=200,  # Bytes in low-power payload
+        num_trials=10,  # Monte Carlo trials per power difference
         sample_shift_range_low=(0, 1),  # Range to randomly apply fractional delays on IQ data
         sample_shift_range_high=(900, 2200),
         freq_high=None,  # Fixed frequency offset for high-power signal, if None random in freq_offset_range

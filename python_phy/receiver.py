@@ -33,8 +33,6 @@ ReceiverType = Literal[
 # Methods are then overridden by the children classes
 class Receiver(ABC):
     # Class variables (overriden in derived classes)
-    transmission_rate: float = None  # baud/s
-    fsk_deviation: float = None  # Hz
     crc_size: int = None  # Bytes
     max_packet_len: int = None  # Bytes
 
@@ -70,13 +68,15 @@ class Receiver(ABC):
 
 class ReceiverBLE(Receiver):
     # Class variables
-    transmission_rate: float = 1e6  # BLE 1 Mb/s
-    fsk_deviation: float = 250e3  # Hz
-    crc_size: int = 3  # 3 bytes CRC for BLE
-    max_packet_len: int = 255  # Bytes
+    _valid_rates = (1e6, 2e6)  # BLE 1Mb/s or 2Mb/s
+    _crc_size: int = 3  # 3 bytes CRC for BLE
+    _max_payload_size: int = 255  # Bytes
 
-    def __init__(self, fs: int):
+    def __init__(self, fs: int, transmission_rate: float = 1e6):
         # Instance variables
+        self.transmission_rate: float = transmission_rate  # BLE 1 Mb/s or 2Mb/s
+        self._fsk_deviation: float = transmission_rate * 0.25  # Hz
+
         self.fs = int(fs)  # Sampling rate
         self.sps: int = int(self.fs / self.transmission_rate)
 
@@ -85,7 +85,7 @@ class ReceiverBLE(Receiver):
         gauss_taps = gaussian_fir_taps(sps=self.sps, ntaps=self.sps, bt=0.5)
         gauss_taps = scipy.signal.convolve(gauss_taps, np.ones(self.sps))
         gauss_taps /= np.sum(gauss_taps)  # Unitary gain
-        self.gauss_taps = gauss_taps
+        self._gauss_taps = gauss_taps
 
         self.set_symbol_sync_parameters()
 
@@ -101,13 +101,13 @@ class ReceiverBLE(Receiver):
         if demodulation_type == "INSTANTANEOUS_FREQUENCY":
             # Low pass matched filter (Gaussian kernel)
             # Generate Gaussian taps and convolve with rectangular window
-            iq_samples = scipy.signal.correlate(iq_samples, self.gauss_taps, mode="full")
+            iq_samples = scipy.signal.correlate(iq_samples, self._gauss_taps, mode="full")
 
             # Squelch
             iq_samples = simple_squelch(iq_samples, threshold_dB=-20, alpha=0.3)
 
             # Frequency demodulation
-            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self.fsk_deviation))
+            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self._fsk_deviation))
             freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
             # Matched filter after frequency demodulation
@@ -115,9 +115,9 @@ class ReceiverBLE(Receiver):
             before_symbol_sync = freq_samples
 
         elif demodulation_type == "BAND_PASS":
-            complex_exp = np.exp(1j * 2 * np.pi * self.fsk_deviation * np.arange(len(self.gauss_taps)) / self.fs)
-            gauss_bandpass_lower = self.gauss_taps / complex_exp
-            gauss_bandpass_higher = self.gauss_taps * complex_exp
+            complex_exp = np.exp(1j * 2 * np.pi * self._fsk_deviation * np.arange(len(self._gauss_taps)) / self.fs)
+            gauss_bandpass_lower = self._gauss_taps / complex_exp
+            gauss_bandpass_higher = self._gauss_taps * complex_exp
 
             # Band-pass filter (complex signal, complex filter, complex output)
             iq_samples_lower = scipy.signal.correlate(iq_samples, gauss_bandpass_lower, mode="full")
@@ -168,14 +168,16 @@ class ReceiverBLE(Receiver):
             payload_length: int = header[-1]  # Payload length in bytes, without CRC
 
             # Payload reading and de-whitening
-            total_bytes: int = payload_length + self.crc_size
+            total_bytes: int = payload_length + self._crc_size
             payload_and_crc = pack_bits_to_uint8(bit_samples[payload_start : payload_start + total_bytes * 8])
             payload_and_crc, _ = ble_whitening(payload_and_crc, lsfr)
 
             # CRC check
-            header_and_payload = np.concatenate((header, payload_and_crc[: -self.crc_size]))
-            computed_crc = compute_crc(header_and_payload, crc_init=0x00FFFF, crc_poly=0x00065B, crc_size=self.crc_size)
-            crc_check = True if (computed_crc == payload_and_crc[-self.crc_size :]).all() else False
+            header_and_payload = np.concatenate((header, payload_and_crc[: -self._crc_size]))
+            computed_crc = compute_crc(
+                header_and_payload, crc_init=0x00FFFF, crc_poly=0x00065B, crc_size=self._crc_size
+            )
+            crc_check = True if (computed_crc == payload_and_crc[-self._crc_size :]).all() else False
 
             payload = header_and_payload[2:]  # Remove CRC bytes
 
@@ -204,6 +206,17 @@ class ReceiverBLE(Receiver):
         )  # From hard decisions to packets
 
         return received_packets
+
+    @property
+    def transmission_rate(self) -> float:
+        return self._transmission_rate
+
+    @transmission_rate.setter
+    def transmission_rate(self, rate: float) -> None:
+        if rate not in self._valid_rates:
+            raise ValueError(f"BLE transmission rate must be one of {self._valid_rates!r}")
+        self._transmission_rate = rate
+        self._fsk_deviation = self.transmission_rate * 0.25
 
 
 class Receiver802154(Receiver):
