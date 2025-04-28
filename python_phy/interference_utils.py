@@ -67,10 +67,13 @@ def subtract_interference_wrapper(
     phase: float = None,
     samples_shift: int = None,
     verbose: bool = False,
+    *,
+    fine_step: float | None = None,  # Step size (Hz) for the fine search
+    fine_window: float | None = None,  # Half-width (Hz) of the window around best coarse frequency
 ) -> np.ndarray:
     """Subtract a known interference from an affected packet."""
     est_frequency, est_amplitude, est_phase, est_samples_shift = find_interference_parameters(
-        affected, interference, freq_offsets, fs
+        affected, interference, freq_offsets, fs, fine_step=fine_step, fine_window=fine_window
     )
     if verbose:
         print(f"{est_frequency = } [Hz]")
@@ -96,29 +99,51 @@ def subtract_interference_wrapper(
 
 # Estimate best frequency offset, amplitude, phase and sample shift to subtract from affected packet.
 def find_interference_parameters(
-    affected: np.ndarray, interference: np.ndarray, freq_offsets: list[float] | range, fs: float
+    affected: np.ndarray,
+    interference: np.ndarray,
+    freq_offsets: list[float] | range,
+    fs: float,
+    *,
+    fine_step: float | None = None,  # Step size (Hz) for the fine search
+    fine_window: float | None = None,  # Half-width (Hz) of the window around best coarse frequency
 ) -> tuple[float, float, float, int]:
-    """Estimate best frequency offset, amplitude, phase and sample shift to subtract from affected packet."""
-    best_amplitude = -1.0
-    best_frequency = None
-    best_phase = None
-    best_sample_shift = None
+    """Estimate best frequency offset, amplitude, phase and sample shift to subtract from affected packet.
 
-    for frequency in freq_offsets:
-        rotated_interference = multiply_by_complex_exponential(interference, fs=fs, freq=frequency)
-        correlation = correlation_wrapper(affected, rotated_interference)
+    If fine_step and fine_window are not None:
+      1. Coarse search over freq_offsets
+      2. Fine search around the best coarse frequency within ±fine_window at steps of fine_step
+    """
 
-        abs_corr = np.abs(correlation)
-        max_idx = np.argmax(abs_corr)
-        curr_amplitude = abs_corr[max_idx]
+    def _single_search(freq_list):
+        best_amp = -np.inf
+        best_freq = 0.0
+        best_ph = 0.0
+        best_idx = 0
 
-        if curr_amplitude > best_amplitude:
-            best_amplitude = curr_amplitude
-            best_frequency = frequency
-            best_phase = np.angle(correlation[max_idx])
-            best_sample_shift = max_idx
+        for f in freq_list:
+            rotated = multiply_by_complex_exponential(interference, fs=fs, freq=f)
+            corr = correlation_wrapper(affected, rotated)
+            abs_corr = np.abs(corr)
+            idx = np.argmax(abs_corr)
+            amp = abs_corr[idx]
 
-    return best_frequency, best_amplitude, best_phase, best_sample_shift
+            if amp > best_amp:
+                best_amp = amp
+                best_freq = f
+                best_ph = np.angle(corr[idx])
+                best_idx = idx
+
+        return best_freq, best_amp, best_ph, best_idx
+
+    if fine_step is None or fine_window is None:
+        return _single_search(freq_offsets)
+
+    # Else, do fine search after coarse search
+    coarse_freq, _, _, _ = _single_search(freq_offsets)
+    low = coarse_freq - fine_window
+    high = coarse_freq + fine_window
+    fine_freqs = np.arange(low, high, fine_step)
+    return _single_search(fine_freqs)
 
 
 # Compute the Bit Error Rate (BER) for a range of frequency offsets.

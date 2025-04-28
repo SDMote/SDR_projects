@@ -22,6 +22,8 @@ class SimulationConfig:
     amplitude_low: float  # Amplitude for lower-power signal (swept)
     snr_low_db: float  # SNR in (dB) relative to the lower power generated signal
     freq_offset_range: range  # (Hz) For demodulation brute force search
+    fine_step: float | None  # Step size (Hz) for the fine search
+    fine_window: float | None  # Half-width (Hz) of the window around best coarse frequency
     payload_len_high: int  # Bytes in high-power payload
     payload_len_low: int  # Bytes in low-power payload
     num_trials: int  # Monte Carlo trials per power difference
@@ -174,10 +176,12 @@ if __name__ == "__main__":
         sampling_rate=10e6,  # Samples per second
         protocol_high="802154",  # BLE or IEEE 802.15.4
         protocol_low="BLE",
-        amplitude_high=0.8,  # Amplitude for higher-power signal (fixed at ADC vmax)
-        amplitude_low=0.4,  # Amplitude for lower-power signal (swept)
+        amplitude_high=0.9,  # Amplitude for higher-power signal (fixed)
+        amplitude_low=0.3,  # Amplitude for lower-power signal (swept)
         snr_low_db=60,  # SNR in (dB) relative to the lower power generated signal
         freq_offset_range=range(-5000, 5000, 50),  # (Hz) For demodulation brute force search
+        fine_step=None,  # Step size (Hz) for the fine search
+        fine_window=None,  # Half-width (Hz) of the window around best coarse frequency
         payload_len_high=10,  # Bytes in high-power payload
         payload_len_low=100,  # Bytes in low-power payload
         num_trials=1,  # Monte Carlo trials per power difference
