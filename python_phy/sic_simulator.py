@@ -153,7 +153,12 @@ class SimulatorSIC:
         rx_iq = adc_quantise(rx_iq, self.cfg.adc_vmax, self.cfg.adc_bits)  # Simulate ADC quantisation
 
         # Demodulate high-power signal first
-        received_packet_high: list[dict] = self.receiver_high.demodulate_to_packet(rx_iq)
+        try:
+            received_packet_high: list[dict] = self.receiver_high.demodulate_to_packet(rx_iq)
+        except Exception:
+            # Treat any exception as no packet received successfully
+            received_packet_high: list[dict] = []
+
         if received_packet_high:
             received_packet_high: dict = received_packet_high[0]
             if verbose:
@@ -183,7 +188,12 @@ class SimulatorSIC:
             )
 
         # Demodulate low-power signal
-        received_packet_low: list[dict] = self.receiver_low.demodulate_to_packet(subtracted_iq)
+        try:
+            received_packet_low: list[dict] = self.receiver_low.demodulate_to_packet(subtracted_iq)
+        except Exception:
+            # Treat any exception as no packet received successfully
+            received_packet_low: list[dict] = []
+
         if received_packet_low:
             received_packet_low: dict = received_packet_low[0]
             if verbose:
