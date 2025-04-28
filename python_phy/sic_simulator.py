@@ -27,7 +27,6 @@ class SimulationConfig:
     fine_window: float | None  # Half-width (Hz) of the window around best coarse frequency
     payload_len_high: int  # Bytes in high-power payload
     payload_len_low: int  # Bytes in low-power payload
-    num_trials: int  # Monte Carlo trials per power difference
     sample_shift_range_low: tuple[int, int]  # Range to randomly apply fractional delays on IQ data
     sample_shift_range_high: tuple[int, int]
     freq_high: float = None  # Fixed frequency offset for high-power signal, if None random in freq_offset_range
@@ -207,7 +206,6 @@ if __name__ == "__main__":
         fine_window=50,  # Half-width (Hz) of the window around best coarse frequency
         payload_len_high=10,  # Bytes in high-power payload
         payload_len_low=200,  # Bytes in low-power payload
-        num_trials=10,  # Monte Carlo trials per power difference
         sample_shift_range_low=(0, 1),  # Range to randomly apply fractional delays on IQ data
         sample_shift_range_high=(900, 2200),
         freq_high=None,  # Fixed frequency offset for high-power signal, if None random in freq_offset_range
