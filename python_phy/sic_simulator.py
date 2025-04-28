@@ -9,6 +9,7 @@ from interference_utils import multiply_by_complex_exponential, subtract_interfe
 from snr_related import add_white_gaussian_noise
 from filters import fractional_delay_fir_filter
 from visualisation import subplots_iq
+from tqdm import tqdm
 
 
 @dataclass
@@ -233,6 +234,10 @@ class SimulatorSIC:
         high_amplitude: float = 10 ** (high_power_db / 20)
         low_amplitudes: np.ndarray = 10 ** (low_powers_db / 20)
 
+        # Progress bar
+        total_iterations = len(low_amplitudes) * len(snr_lows_db)
+        progress_bar = tqdm(total=total_iterations, desc="Simulating")
+
         for idx_power, amp_low in enumerate(low_amplitudes):
             for idx_snr, snr_low in enumerate(snr_lows_db):
                 num_successes_high: int = 0
@@ -248,6 +253,9 @@ class SimulatorSIC:
                 pdr[0, idx_power, idx_snr] = num_successes_high / num_trials
                 pdr[1, idx_power, idx_snr] = num_successes_low / num_trials
 
+                progress_bar.update(1)
+
+        progress_bar.close()
         return pdr
 
 
