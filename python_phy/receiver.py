@@ -77,13 +77,13 @@ class ReceiverBLE(Receiver):
         self.transmission_rate: float = transmission_rate  # BLE 1 Mb/s or 2Mb/s
         self._fsk_deviation: float = transmission_rate * 0.25  # Hz
 
-        self.fs = int(fs)  # Sampling rate
-        self.sps: int = int(self.fs / self.transmission_rate)
+        self._fs = int(fs)  # Sampling rate
+        self._sps: int = int(self._fs / self.transmission_rate)
 
         # Create matched filter taps from sampling rate `fs`
         # Generate Gaussian taps and convolve with rectangular window
-        gauss_taps = gaussian_fir_taps(sps=self.sps, ntaps=self.sps, bt=0.5)
-        gauss_taps = scipy.signal.convolve(gauss_taps, np.ones(self.sps))
+        gauss_taps = gaussian_fir_taps(sps=self._sps, ntaps=self._sps, bt=0.5)
+        gauss_taps = scipy.signal.convolve(gauss_taps, np.ones(self._sps))
         gauss_taps /= np.sum(gauss_taps)  # Unitary gain
         self._gauss_taps = gauss_taps
 
@@ -107,7 +107,7 @@ class ReceiverBLE(Receiver):
             iq_samples = simple_squelch(iq_samples, threshold_dB=-20, alpha=0.3)
 
             # Frequency demodulation
-            freq_samples = demodulate_frequency(iq_samples, gain=(self.fs) / (2 * np.pi * self._fsk_deviation))
+            freq_samples = demodulate_frequency(iq_samples, gain=(self._fs) / (2 * np.pi * self._fsk_deviation))
             freq_samples -= single_pole_iir_filter(freq_samples, alpha=160e-6)
 
             # Matched filter after frequency demodulation
@@ -115,7 +115,7 @@ class ReceiverBLE(Receiver):
             before_symbol_sync = freq_samples
 
         elif demodulation_type == "BAND_PASS":
-            complex_exp = np.exp(1j * 2 * np.pi * self._fsk_deviation * np.arange(len(self._gauss_taps)) / self.fs)
+            complex_exp = np.exp(1j * 2 * np.pi * self._fsk_deviation * np.arange(len(self._gauss_taps)) / self._fs)
             gauss_bandpass_lower = self._gauss_taps / complex_exp
             gauss_bandpass_higher = self._gauss_taps * complex_exp
 
@@ -137,7 +137,7 @@ class ReceiverBLE(Receiver):
         # Symbol synchronisation
         bit_samples = symbol_sync(
             before_symbol_sync,
-            sps=self.sps,
+            sps=self._sps,
             ted_type=ted_type,
             TED_gain=self._symbol_sync_param_TED_gain,
             loop_BW=self._symbol_sync_param_loop_BW,
