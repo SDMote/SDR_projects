@@ -165,7 +165,13 @@ class SimulatorSIC:
         # Synthesise the high-power signal and subtract
         synth_high_iq = self.transmitter_high.modulate_from_payload(received_packet_high["payload"])
         subtracted_iq = subtract_interference_wrapper(
-            rx_iq, synth_high_iq, self.cfg.sampling_rate, self.cfg.freq_offset_range, verbose=verbose
+            rx_iq,
+            synth_high_iq,
+            self.cfg.sampling_rate,
+            self.cfg.freq_offset_range,
+            fine_step=self.cfg.fine_step,
+            fine_window=self.cfg.fine_window,
+            verbose=verbose,
         )
 
         subplots_iq(
@@ -195,10 +201,10 @@ if __name__ == "__main__":
         ble_rate=1e6,  # 1 Mb/s or 2 Mb/s
         amplitude_high=0.9,  # Amplitude for higher-power signal (fixed)
         amplitude_low=0.3,  # Amplitude for lower-power signal (swept)
-        snr_low_db=60,  # SNR in (dB) relative to the lower power generated signal
+        snr_low_db=20,  # SNR in (dB) relative to the lower power generated signal
         freq_offset_range=range(-5000, 5000, 50),  # (Hz) For demodulation brute force search
-        fine_step=None,  # Step size (Hz) for the fine search
-        fine_window=None,  # Half-width (Hz) of the window around best coarse frequency
+        fine_step=2,  # Step size (Hz) for the fine search
+        fine_window=50,  # Half-width (Hz) of the window around best coarse frequency
         payload_len_high=10,  # Bytes in high-power payload
         payload_len_low=200,  # Bytes in low-power payload
         num_trials=10,  # Monte Carlo trials per power difference

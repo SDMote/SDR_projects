@@ -66,10 +66,10 @@ def subtract_interference_wrapper(
     amplitude: float = None,
     phase: float = None,
     samples_shift: int = None,
-    verbose: bool = False,
     *,
     fine_step: float | None = None,  # Step size (Hz) for the fine search
     fine_window: float | None = None,  # Half-width (Hz) of the window around best coarse frequency
+    verbose: bool = False,
 ) -> np.ndarray:
     """Subtract a known interference from an affected packet."""
     est_frequency, est_amplitude, est_phase, est_samples_shift = find_interference_parameters(
