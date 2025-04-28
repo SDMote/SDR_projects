@@ -96,7 +96,7 @@ class SimulatorSIC:
 
     # Run a single trial of SIC. Returns tuple: (delivery_success_high, delivery_success_low)
     def simulate_single_trial(
-        self, amplitude_high: float, amplitude_low: float, verbose: bool = False
+        self, amplitude_high: float, amplitude_low: float, snr_low_db: float = None, *, verbose: bool = False
     ) -> tuple[bool, bool]:
         """
         Run a single trial of SIC. Returns tuple: (delivery_success_high, delivery_success_low)
@@ -132,7 +132,7 @@ class SimulatorSIC:
         iq_low = fractional_delay_fir_filter(iq_low, np.random.uniform(*self.cfg.sample_shift_range_low))
         iq_high, iq_low = self._zero_padding(iq_high, iq_low, padding=self.cfg.padding)  # Ensure same signals length
         # O-QPSK and FSK modulated signals' power is their amplitude squared
-        noise_power = self.cfg.amplitude_low**2 / (10 ** (self.cfg.snr_low_db / 10))
+        noise_power = self.cfg.amplitude_low**2 / (10 ** (snr_low_db / 10))
         rx_iq: np.ndarray = add_white_gaussian_noise(iq_high + iq_low, noise_power, noise_power_db=False)
 
         rx_iq = adc_quantise(rx_iq, self.cfg.adc_vmax, self.cfg.adc_bits)  # Simulate ADC quantisation
@@ -186,7 +186,7 @@ if __name__ == "__main__":
         payload_len_low=100,  # Bytes in low-power payload
         num_trials=1,  # Monte Carlo trials per power difference
         sample_shift_range_low=(0, 1),  # Range to randomly apply fractional delays on IQ data
-        sample_shift_range_high=(900, 1200),
+        sample_shift_range_high=(900, 2200),
         freq_high=None,  # Fixed frequency offset for high-power signal, if None random in freq_offset_range
         freq_low=None,  # Fixed frequency offset for low-power signal, if None random in freq_offset_range
         phase_high=None,  # Fixed phase for high-power signal, if None random
@@ -197,4 +197,5 @@ if __name__ == "__main__":
     )
 
     simulator = SimulatorSIC(cfg)
-    simulator.simulate_single_trial(cfg.amplitude_high, cfg.amplitude_low, verbose=True)
+    simulator.simulate_single_trial(cfg.amplitude_high, cfg.amplitude_low, cfg.snr_low_db, verbose=True)
+
