@@ -156,7 +156,8 @@ class SimulatorSIC:
         received_packet_high: list[dict] = self.receiver_high.demodulate_to_packet(rx_iq)
         if received_packet_high:
             received_packet_high: dict = received_packet_high[0]
-            print(f"{received_packet_high = }")
+            if verbose:
+                print(f"{received_packet_high = }")
             success_high = received_packet_high["crc_check"]
         else:
             return False, False  # If the highest power signal is not demodulated, SIC didn't work
@@ -173,18 +174,20 @@ class SimulatorSIC:
             verbose=verbose,
         )
 
-        subplots_iq(
-            [rx_iq, synth_high_iq, subtracted_iq],
-            self.cfg.sampling_rate,
-            ["Interfered packet", "Synthesised", "Subtracted"],
-            show=True,
-        )
+        if verbose:
+            subplots_iq(
+                [rx_iq, synth_high_iq, subtracted_iq],
+                self.cfg.sampling_rate,
+                ["Interfered packet", "Synthesised", "Subtracted"],
+                show=True,
+            )
 
         # Demodulate low-power signal
         received_packet_low: list[dict] = self.receiver_low.demodulate_to_packet(subtracted_iq)
         if received_packet_low:
             received_packet_low: dict = received_packet_low[0]
-            print(f"{received_packet_low = }")
+            if verbose:
+                print(f"{received_packet_low = }")
             success_low = received_packet_low["crc_check"]
         else:
             return success_high, False
