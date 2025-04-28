@@ -204,6 +204,52 @@ class SimulatorSIC:
 
         return success_high, success_low
 
+    # Sweep over the power and SNR of the low-power signal, and compute the PDR for both the high-power and low-power signals.
+    def run_monte_carlo(
+        self,
+        high_power_db: float,
+        low_powers_db: np.ndarray,  # Shape (Powers,)
+        snr_lows_db: np.ndarray,  # Shape (SNRs,)
+        *,
+        num_trials: int,
+    ) -> np.ndarray:  # Shape (2, Powers, SNRs)
+        """
+        Sweep over the power and SNR of the low-power signal and compute the PDR for both the high- and low-power signals.
+
+        Returns
+        -------
+        pdr : np.ndarray
+            Shape (2, Powers, SNRs), where
+            - Axis 0 (Signal): 0 = high-power signal, 1 = low-power signal
+            - Axis 1 (Powers): swept values for power differences
+            - Axis 2 (SNRs): SNR values relative to the low-power signal
+            Each pdr estimation is (num_successes / num_trials).
+        """
+        Powers = low_powers_db.size
+        SNRs = snr_lows_db.size
+        pdr = np.empty((2, Powers, SNRs), dtype=float)
+
+        # Power dB -> amplitude
+        high_amplitude: float = 10 ** (high_power_db / 20)
+        low_amplitudes: np.ndarray = 10 ** (low_powers_db / 20)
+
+        for idx_power, amp_low in enumerate(low_amplitudes):
+            for idx_snr, snr_low in enumerate(snr_lows_db):
+                num_successes_high: int = 0
+                num_successes_low: int = 0
+                for _ in range(num_trials):
+                    success_high, success_low = self.simulate_single_trial(
+                        amplitude_high=high_amplitude,
+                        amplitude_low=amp_low,
+                        snr_low_db=snr_low,
+                    )
+                    num_successes_high += int(success_high)
+                    num_successes_low += int(success_low)
+                pdr[0, idx_power, idx_snr] = num_successes_high / num_trials
+                pdr[1, idx_power, idx_snr] = num_successes_low / num_trials
+
+        return pdr
+
 
 if __name__ == "__main__":
     cfg = SimulationConfig(
@@ -232,4 +278,3 @@ if __name__ == "__main__":
 
     simulator = SimulatorSIC(cfg)
     simulator.simulate_single_trial(cfg.amplitude_high, cfg.amplitude_low, cfg.snr_low_db, verbose=True)
-
