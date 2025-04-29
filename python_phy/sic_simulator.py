@@ -269,9 +269,9 @@ if __name__ == "__main__":
         protocol_high="802154",  # BLE or IEEE 802.15.4
         protocol_low="BLE",
         ble_rate=1e6,  # 1 Mb/s or 2 Mb/s
-        amplitude_high=0.707,  # Amplitude for higher-power signal (fixed)
-        amplitude_low=0.3,  # Amplitude for lower-power signal (swept)
-        snr_low_db=20,  # SNR in (dB) relative to the lower power generated signal
+        amplitude_high=10 ** (-6 / 20),  # Amplitude for higher-power signal (fixed)
+        amplitude_low=10 ** (-7 / 20),  # Amplitude for lower-power signal (swept)
+        snr_low_db=10,  # SNR in (dB) relative to the lower power generated signal
         freq_offset_range=range(-5000, 5000, 50),  # (Hz) For demodulation brute force search
         fine_step=2,  # Step size (Hz) for the fine search
         fine_window=50,  # Half-width (Hz) of the window around best coarse frequency
@@ -289,4 +289,4 @@ if __name__ == "__main__":
     )
 
     simulator = SimulatorSIC(cfg)
-    simulator.simulate_single_trial(cfg.amplitude_high, cfg.amplitude_low, cfg.snr_low_db, verbose=True)
+    print(simulator.simulate_single_trial(cfg.amplitude_high, cfg.amplitude_low, cfg.snr_low_db, verbose=True))
