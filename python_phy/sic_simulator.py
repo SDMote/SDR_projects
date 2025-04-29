@@ -240,27 +240,35 @@ class SimulatorSIC:
 
         # Progress bar
         total_iterations = len(low_amplitudes) * len(snr_lows_db)
-        progress_bar = tqdm(total=total_iterations, desc="Simulating")
+        progress_bar = tqdm(total=total_iterations, desc="Simulating", mininterval=5.0)
 
         for idx_power, amp_low in enumerate(low_amplitudes):
             for idx_snr, snr_low in enumerate(snr_lows_db):
-                num_successes_high: int = 0
-                num_successes_low: int = 0
-                for _ in range(num_trials):
-                    success_high, success_low = self.simulate_single_trial(
-                        amplitude_high=high_amplitude,
-                        amplitude_low=amp_low,
-                        snr_low_db=snr_low,
-                    )
-                    num_successes_high += int(success_high)
-                    num_successes_low += int(success_low)
-                pdr[0, idx_power, idx_snr] = num_successes_high / num_trials
-                pdr[1, idx_power, idx_snr] = num_successes_low / num_trials
+                pdr_high, pdr_low = _worker_task(self, high_amplitude, amp_low, snr_low, num_trials)
+                pdr[0, idx_power, idx_snr] = pdr_high
+                pdr[1, idx_power, idx_snr] = pdr_low
 
                 progress_bar.update(1)
 
         progress_bar.close()
         return pdr
+
+
+def _worker_task(
+    sim_obj: SimulatorSIC, amp_high: float, amp_low: float, snr_low_db: float, num_trials: int
+) -> tuple[float, float]:
+    """Worker that runs num_trials for a single (amp_low, snr_low_db)."""
+    num_successes_high: int = 0
+    num_successes_low: int = 0
+    for _ in range(num_trials):
+        success_high, success_low = sim_obj.simulate_single_trial(
+            amplitude_high=amp_high,
+            amplitude_low=amp_low,
+            snr_low_db=snr_low_db,
+        )
+        num_successes_high += int(success_high)
+        num_successes_low += int(success_low)
+    return num_successes_high / num_trials, num_successes_low / num_trials
 
 
 if __name__ == "__main__":
@@ -270,8 +278,8 @@ if __name__ == "__main__":
         protocol_low="BLE",
         ble_rate=1e6,  # 1 Mb/s or 2 Mb/s
         amplitude_high=10 ** (-6 / 20),  # Amplitude for higher-power signal (fixed)
-        amplitude_low=10 ** (-7 / 20),  # Amplitude for lower-power signal (swept)
-        snr_low_db=10,  # SNR in (dB) relative to the lower power generated signal
+        amplitude_low=10 ** (-10 / 20),  # Amplitude for lower-power signal (swept)
+        snr_low_db=0,  # SNR in (dB) relative to the lower power generated signal
         freq_offset_range=range(-5000, 5000, 50),  # (Hz) For demodulation brute force search
         fine_step=2,  # Step size (Hz) for the fine search
         fine_window=50,  # Half-width (Hz) of the window around best coarse frequency
