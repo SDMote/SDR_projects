@@ -290,3 +290,127 @@ def load_and_plot_pkl_data(
 
     # Plot the data
     plotter.plot(title=title, figsize=figsize)
+
+
+# Plot PDR vs. power difference (high - low) for each signal from a SIC simulation.
+def sic_plot_pdr_vs_power(
+    high_power_db: float,
+    low_powers_db: np.ndarray,  # shape (P,)
+    pdr: np.ndarray,  # shape (2, P)
+) -> None:
+    """
+    Plot PDR vs. power difference (high - low) for each signal from a SIC simulation.
+    """
+    power_diff = high_power_db - low_powers_db
+    plt.figure()
+    plt.plot(power_diff, pdr[0], marker="o", label="High‐power signal")
+    plt.plot(power_diff, pdr[1], marker="s", label="Low‐power signal")
+    plt.xlabel("Power Difference (dB)")
+    plt.ylabel("Packet Delivery Rate (-)")
+    plt.title("PDR vs. Power Difference")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+
+
+# Plot two heatmaps of PDR over (power difference, snr_lows_db), one per signal.
+def sic_plot_pdr_heatmap(
+    high_power_db: float,
+    low_powers_db: np.ndarray,  # (P,)
+    snr_lows_db: np.ndarray,  # (S,)
+    pdr: np.ndarray,  # (2, P, S)
+    figsize=None,
+    max_xticks: int = 6,
+    max_yticks: int = 6,
+) -> None:
+    """
+    Plot two heatmaps of PDR over (power difference, snr_lows_db), one per signal.
+    """
+    nrows, ncols = 1, 2
+    sharex, sharey = False, True
+    power_diff = high_power_db - low_powers_db
+    figsize = figsize if figsize is not None else (5 * ncols, 4 * nrows)
+
+    fig, axes = plt.subplots(nrows, ncols, sharex=sharex, sharey=sharey, figsize=figsize, constrained_layout=True)
+    axes = np.atleast_1d(axes).flatten()
+    titles = ["High-power signal", "Low-power signal"]
+
+    def compute_edges(x: np.ndarray) -> np.ndarray:
+        """Compute bin edges for imshow."""
+        dx = np.diff(x)
+        dx = np.hstack([dx[0], dx])  # Assume first spacing same as second
+        return np.concatenate([x - dx / 2, [x[-1] + dx[-1] / 2]])
+
+    power_edges = compute_edges(power_diff)
+    snr_edges = compute_edges(snr_lows_db)
+    vmin, vmax = pdr.min(), pdr.max()  # Common colour scale
+
+    # Reasonable number of ticks for large arrays
+    def reduce_ticks(values: np.ndarray, max_ticks: int) -> np.ndarray:
+        if len(values) <= max_ticks:
+            return values
+        indices = np.linspace(0, len(values) - 1, max_ticks, dtype=int)
+        return values[indices]
+
+    xticks = reduce_ticks(power_diff, max_xticks)
+    yticks = reduce_ticks(snr_lows_db, max_yticks)
+
+    # Plot each heatmap
+    ims = []
+    for i, ax in enumerate(axes):
+        im = ax.imshow(
+            pdr[i].T,
+            aspect="auto",
+            origin="lower",
+            extent=[power_edges[0], power_edges[-1], snr_edges[0], snr_edges[-1]],
+            vmin=vmin,
+            vmax=vmax,
+            interpolation="nearest",
+        )
+        ims.append(im)
+
+        ax.set_title(titles[i])
+        ax.set_xlabel("Power difference (dB)")
+        ax.set_xticks(xticks)
+
+        if i == 0:
+            ax.set_ylabel("SNR of low-power signal (dB)")
+            ax.set_yticks(yticks)
+        else:
+            ax.tick_params(axis="y", labelleft=False)
+
+        # Fix x-axis direction (low to high values)
+        if power_diff[0] > power_diff[-1]:
+            ax.invert_xaxis()
+
+    cbar = fig.colorbar(ims[0], ax=axes.ravel().tolist(), location="right", shrink=0.8)
+    cbar.set_label("PDR")
+
+    plt.show()
+
+
+# Dummy test
+if __name__ == "__main__":
+    # Simulation parameters
+    high_power_db = -5.0
+    low_powers_db = np.linspace(-20, 0, 20)
+    snr_lows_db = np.linspace(-10, 10, 20)
+    P, S = len(low_powers_db), len(snr_lows_db)
+    # Shape (2, P, S)
+    pdr = np.zeros((2, P, S))
+    for i in range(2):
+        for p in range(P):
+            for s in range(S):
+                # Just a made-up function
+                base = np.clip((snr_lows_db[s] + low_powers_db[p]) / 30 + 0.5, 0, 1)
+                pdr[i, p, s] = base * (0.9 if i == 1 else 1.0)
+
+    # 1) Plot a single‐SNR slice vs. power
+    snr_idx = 3  # To slice PDR
+    pdr_slice = pdr[:, :, snr_idx]  # shape (2, P)
+    sic_plot_pdr_vs_power(high_power_db, low_powers_db, pdr_slice)
+
+    # 2) Plot full heatmaps, both layouts
+    sic_plot_pdr_heatmap(high_power_db, low_powers_db, snr_lows_db, pdr)
+
+    plt.show()
