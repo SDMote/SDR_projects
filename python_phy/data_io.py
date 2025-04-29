@@ -31,6 +31,7 @@ def sic_make_filename(cfg: SimulationConfig, num_trials: int) -> str:
     entries = []
     entries.append(_sic_make_proto_payload_tag(cfg.protocol_high, cfg.payload_len_high, cfg.ble_rate))
     entries.append(_sic_make_proto_payload_tag(cfg.protocol_low, cfg.payload_len_low, cfg.ble_rate))
+    entries.append(f"{int(cfg.sampling_rate/1e6)}Msps")
     entries.append(f"{num_trials}trials")
 
     return "_".join(entries) + ".npz"
