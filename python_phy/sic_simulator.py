@@ -165,28 +165,32 @@ class SimulatorSIC:
             if verbose:
                 print(f"{received_packet_high = }")
             success_high = received_packet_high["crc_check"]
-        else:
-            return False, False  # If the highest power signal is not demodulated, SIC didn't work
 
-        # Synthesise the high-power signal and subtract
-        synth_high_iq = self.transmitter_high.modulate_from_payload(received_packet_high["payload"])
-        subtracted_iq = subtract_interference_wrapper(
-            rx_iq,
-            synth_high_iq,
-            self.cfg.sampling_rate,
-            self.cfg.freq_offset_range,
-            fine_step=self.cfg.fine_step,
-            fine_window=self.cfg.fine_window,
-            verbose=verbose,
-        )
-
-        if verbose:
-            subplots_iq(
-                [rx_iq, synth_high_iq, subtracted_iq],
+            # Synthesise the high-power signal and subtract, even with wrong CRC check
+            synth_high_iq = self.transmitter_high.modulate_from_payload(received_packet_high["payload"])
+            subtracted_iq = subtract_interference_wrapper(
+                rx_iq,
+                synth_high_iq,
                 self.cfg.sampling_rate,
-                ["Interfered packet", "Synthesised", "Subtracted"],
-                show=True,
+                self.cfg.freq_offset_range,
+                fine_step=self.cfg.fine_step,
+                fine_window=self.cfg.fine_window,
+                verbose=verbose,
             )
+
+            if verbose:
+                subplots_iq(
+                    [rx_iq, synth_high_iq, subtracted_iq],
+                    self.cfg.sampling_rate,
+                    ["Interfered packet", "Synthesised", "Subtracted"],
+                    show=True,
+                )
+        else:
+            success_high = False
+            # Cannot subtract interference, but still try to demodulate low-power signal
+            subtracted_iq = rx_iq
+            if verbose:
+                print("High-power signal not demodulated; trying low-power directly")
 
         # Demodulate low-power signal
         try:
