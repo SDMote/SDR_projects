@@ -10,6 +10,7 @@ from snr_related import add_white_gaussian_noise
 from filters import fractional_delay_fir_filter
 from visualisation import subplots_iq
 from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
 @dataclass
@@ -251,6 +252,68 @@ class SimulatorSIC:
                 progress_bar.update(1)
 
         progress_bar.close()
+        return pdr
+
+    def run_monte_carlo_parallel(
+        self,
+        high_power_db: float,
+        low_powers_db: np.ndarray,  # Shape (Powers,)
+        snr_lows_db: np.ndarray,  # Shape (SNRs,)
+        *,
+        num_trials: int,
+        max_workers: int = None,  # defaults to number of CPUs
+    ) -> np.ndarray:  # Shape (2, Powers, SNRs)
+        """
+        Sweep over the power and SNR of the low-power signal and compute the PDR for both the high- and low-power signals.
+
+        Returns
+        -------
+        pdr : np.ndarray
+            Shape (2, Powers, SNRs), where
+            - Axis 0 (Signal): 0 = high-power signal, 1 = low-power signal
+            - Axis 1 (Powers): swept values for power differences
+            - Axis 2 (SNRs): SNR values relative to the low-power signal
+            Each pdr estimation is (num_successes / num_trials).
+        """
+        Powers: int = low_powers_db.size
+        SNRs: int = snr_lows_db.size
+        pdr: np.ndarray = np.empty((2, Powers, SNRs), dtype=float)
+
+        # Power dB -> amplitude
+        high_amplitude: float = 10 ** (high_power_db / 20)
+        low_amplitudes: np.ndarray = 10 ** (low_powers_db / 20)
+
+        # Prepare task tuples: (sim_obj, amplitude_high, amplitude_low, snr_low_db, num_trials, idx_power, idx_snr)
+        tasks = [
+            (self, high_amplitude, amp_low, snr_low_db, num_trials, idx_power, idx_snr)
+            for idx_power, amp_low in enumerate(low_amplitudes)
+            for idx_snr, snr_low_db in enumerate(snr_lows_db)
+        ]
+
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(
+                    _worker_task,
+                    sim_obj,
+                    amplitude_high,
+                    amplitude_low,
+                    snr_low_db,
+                    num_trials,
+                ): (idx_power, idx_snr)
+                for sim_obj, amplitude_high, amplitude_low, snr_low_db, num_trials, idx_power, idx_snr in tasks
+            }
+
+            for future in tqdm(
+                as_completed(futures),
+                total=len(futures),
+                desc="Simulating",
+                mininterval=5.0,
+            ):
+                idx_power, idx_snr = futures[future]
+                p_high, p_low = future.result()
+                pdr[0, idx_power, idx_snr] = p_high
+                pdr[1, idx_power, idx_snr] = p_low
+
         return pdr
 
 
