@@ -56,14 +56,14 @@ class SimulatorSIC:
                 float,  # Default BLE rate, ignored for non‐BLE
             ],
         ] = {
-            "BLE": (TransmitterBLE, ReceiverBLE, config.ble_rate),
+            "ble": (TransmitterBLE, ReceiverBLE, config.ble_rate),
             "802154": (Transmitter802154, Receiver802154, 0.0),  # Rate unused
         }
 
         # Helper to instantiate Tx/Rx with or without rate param
         def _map_protocol(proto: str):
             TxClass, RxClass, rate = proto_map[proto]
-            if proto == "BLE":  # Pass both sampling_rate and transmission_rate
+            if proto == "ble":  # Pass both sampling_rate and transmission_rate
 
                 return (
                     TxClass(self.cfg.sampling_rate, transmission_rate=rate),
@@ -338,7 +338,7 @@ if __name__ == "__main__":
     cfg = SimulationConfig(
         sampling_rate=10e6,  # Samples per second
         protocol_high="802154",  # BLE or IEEE 802.15.4
-        protocol_low="BLE",
+        protocol_low="ble",
         ble_rate=1e6,  # 1 Mb/s or 2 Mb/s
         amplitude_high=10 ** (-6 / 20),  # Amplitude for higher-power signal (fixed)
         amplitude_low=10 ** (-10 / 20),  # Amplitude for lower-power signal (swept)
