@@ -297,12 +297,14 @@ def sic_plot_pdr_vs_power(
     high_power_db: float,
     low_powers_db: np.ndarray,  # shape (P,)
     pdr: np.ndarray,  # shape (2, P)
+    *,
+    figsize=None,
 ) -> None:
     """
     Plot PDR vs. power difference (high - low) for each signal from a SIC simulation.
     """
     power_diff = high_power_db - low_powers_db
-    plt.figure()
+    plt.figure(figsize=figsize)
     plt.plot(power_diff, pdr[0], marker="o", label="High‐power signal")
     plt.plot(power_diff, pdr[1], marker="s", label="Low‐power signal")
     plt.xlabel("Power Difference (dB)")
@@ -319,6 +321,7 @@ def sic_plot_pdr_heatmap(
     low_powers_db: np.ndarray,  # (P,)
     snr_lows_db: np.ndarray,  # (S,)
     pdr: np.ndarray,  # (2, P, S)
+    *,
     figsize=None,
     max_xticks: int = 6,
     max_yticks: int = 6,
