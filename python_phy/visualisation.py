@@ -100,9 +100,13 @@ def plot_payload(packet_data: dict) -> None:
 
 # Plots IQ data in vertical subplots.
 def subplots_iq(data: list, fs: float, titles=None, labels=None, show=True, figsize=(10, 6)) -> None:
-    """Plots IQ data in vertical subplots."""
+    """Plots IQ data in vertical subplots with shared zooming."""
     num_subplots = len(data)
-    _, axes = plt.subplots(num_subplots, 1, figsize=figsize)
+    _, axes = plt.subplots(num_subplots, 1, figsize=figsize, sharex=True, sharey=True)
+
+    # Ensure axes is always iterable
+    if num_subplots == 1:
+        axes = [axes]
 
     if titles is None:
         titles = [f"IQ Data {i+1}" for i in range(num_subplots)]
@@ -112,8 +116,8 @@ def subplots_iq(data: list, fs: float, titles=None, labels=None, show=True, figs
     for i, iq_data in enumerate(data):
         plot_time(axes[i], [np.real(iq_data), np.imag(iq_data)], fs, labels[i], titles[i], time=False)
 
-    plt.tight_layout()
     if show:
+        plt.tight_layout()
         plt.show()
 
 
@@ -325,6 +329,7 @@ def sic_plot_pdr_heatmap(
     figsize=None,
     max_xticks: int = 6,
     max_yticks: int = 6,
+    saveas: str = None,
 ) -> None:
     """
     Plot two heatmaps of PDR over (power difference, snr_lows_db), one per signal.
@@ -388,6 +393,9 @@ def sic_plot_pdr_heatmap(
 
     cbar = fig.colorbar(ims[0], ax=axes.ravel().tolist(), location="right", shrink=0.8)
     cbar.set_label("PDR")
+
+    if saveas:
+        plt.savefig(saveas, format="pdf", bbox_inches="tight")
 
     plt.show()
 
