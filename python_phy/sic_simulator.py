@@ -17,7 +17,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 class SimulationConfig:
     """Successive Interference Cancellation simulation parameters"""
 
-    sampling_rate: float  # Samples per second
+    sample_rate: float  # Samples per second
     protocol_high: ReceiverType  # BLE or IEEE 802.15.4
     protocol_low: ReceiverType
     ble_rate: float  # 1 Mb/s or 2 Mb/s
@@ -63,16 +63,16 @@ class SimulatorSIC:
         # Helper to instantiate Tx/Rx with or without rate param
         def _map_protocol(proto: str):
             TxClass, RxClass, rate = proto_map[proto]
-            if proto == "ble":  # Pass both sampling_rate and transmission_rate
+            if proto == "ble":  # Pass both sample_rate and transmission_rate
 
                 return (
-                    TxClass(self.cfg.sampling_rate, transmission_rate=rate),
-                    RxClass(self.cfg.sampling_rate, transmission_rate=rate),
+                    TxClass(self.cfg.sample_rate, transmission_rate=rate),
+                    RxClass(self.cfg.sample_rate, transmission_rate=rate),
                 )
-            else:  # Only pass sampling_rate
+            else:  # Only pass sample_rate
                 return (
-                    TxClass(self.cfg.sampling_rate),
-                    RxClass(self.cfg.sampling_rate),
+                    TxClass(self.cfg.sample_rate),
+                    RxClass(self.cfg.sample_rate),
                 )
 
         self.transmitter_high, self.receiver_high = _map_protocol(self.cfg.protocol_high)
@@ -98,7 +98,7 @@ class SimulatorSIC:
             else np.random.uniform(self.cfg.freq_offset_range.start, self.cfg.freq_offset_range.stop)
         )
         phase = phase if phase is not None else np.random.uniform(0, 2 * np.pi)
-        return multiply_by_complex_exponential(iq, self.cfg.sampling_rate, freq_offset, phase, amplitude)
+        return multiply_by_complex_exponential(iq, self.cfg.sample_rate, freq_offset, phase, amplitude)
 
     # Helper function to equalise the size of two arrays
     def _zero_padding(self, array1: np.ndarray, array2: np.ndarray, padding: int) -> tuple[np.ndarray, np.ndarray]:
@@ -172,7 +172,7 @@ class SimulatorSIC:
             subtracted_iq = subtract_interference_wrapper(
                 rx_iq,
                 synth_high_iq,
-                self.cfg.sampling_rate,
+                self.cfg.sample_rate,
                 self.cfg.freq_offset_range,
                 fine_step=self.cfg.fine_step,
                 fine_window=self.cfg.fine_window,
@@ -181,8 +181,8 @@ class SimulatorSIC:
 
             if verbose:
                 subplots_iq(
-                    [rx_iq, synth_high_iq, subtracted_iq],
-                    self.cfg.sampling_rate,
+                    [rx_iq, rx_iq - subtracted_iq, subtracted_iq],
+                    self.cfg.sample_rate,
                     ["Interfered packet", "Synthesised", "Subtracted"],
                     show=True,
                 )
@@ -336,22 +336,22 @@ def _worker_task(
 
 if __name__ == "__main__":
     cfg = SimulationConfig(
-        sampling_rate=10e6,  # Samples per second
+        sample_rate=14e6,  # Samples per second
         protocol_high="802154",  # BLE or IEEE 802.15.4
         protocol_low="ble",
         ble_rate=1e6,  # 1 Mb/s or 2 Mb/s
         amplitude_high=10 ** (-6 / 20),  # Amplitude for higher-power signal (fixed)
         amplitude_low=10 ** (-10 / 20),  # Amplitude for lower-power signal (swept)
-        snr_low_db=0,  # SNR in (dB) relative to the lower power generated signal
-        freq_offset_range=range(-5000, 5000, 50),  # (Hz) For demodulation brute force search
+        snr_low_db=14,  # SNR in (dB) relative to the lower power generated signal
+        freq_offset_range=range(-6000, 6000, 50),  # (Hz) For demodulation brute force search
         fine_step=2,  # Step size (Hz) for the fine search
         fine_window=50,  # Half-width (Hz) of the window around best coarse frequency
-        payload_len_high=30,  # Bytes in high-power payload
-        payload_len_low=200,  # Bytes in low-power payload
+        payload_len_high=1,  # Bytes in high-power payload
+        payload_len_low=40,  # Bytes in low-power payload
         sample_shift_range_low=(0, 1),  # Range to randomly apply fractional delays on IQ data
-        sample_shift_range_high=(400, 2200),
-        freq_high=None,  # Fixed frequency offset for high-power signal, if None random in freq_offset_range
-        freq_low=None,  # Fixed frequency offset for low-power signal, if None random in freq_offset_range
+        sample_shift_range_high=(1000, 1001),
+        freq_high=5000,  # Fixed frequency offset for high-power signal, if None random in freq_offset_range
+        freq_low=-5000,  # Fixed frequency offset for low-power signal, if None random in freq_offset_range
         phase_high=None,  # Fixed phase for high-power signal, if None random
         phase_low=None,  # Fixed phase for low-power signal, if None random
         adc_bits=12,  # ADC resolution in bits

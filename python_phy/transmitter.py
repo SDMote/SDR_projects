@@ -35,15 +35,15 @@ class TransmitterBLE(Transmitter):
     _bt: float = 0.5  # Bandwidth-bit period product for Gaussian pulse shaping
     _max_payload_size: int = 255
 
-    def __init__(self, fs: int | float, transmission_rate: float = 1e6):
+    def __init__(self, sample_rate: int | float, transmission_rate: float = 1e6):
         # Instance variables
+        self.sample_rate = sample_rate  # Sampling rate
         self.transmission_rate: float = transmission_rate  # BLE 1Mb/s or 2Mb/s
         self._fsk_deviation: float = self.transmission_rate * 0.25  # Hz
 
-        self.fs = fs  # Sampling rate
         # For now, assume sampling rate is an integer multiple of transmission rate.
         # For generalisation, it's necessary to implement a rational resampler to generate the final IQ signal.
-        self.sps: int = int(self.fs / self.transmission_rate)  # Samples per symbol
+        self.sps: int = int(self.sample_rate / self.transmission_rate)  # Samples per symbol
 
     # Receives a binary array and returns IQ GFSK modulated compplex signal.
     def modulate(self, bits: np.ndarray, zero_padding: int = 0) -> np.ndarray:
@@ -57,7 +57,7 @@ class TransmitterBLE(Transmitter):
         pulse_shaped_symbols = pulse_shape_bits_fir(bits, fir_taps=gauss_taps, sps=self.sps)
 
         # Frequency modulation
-        iq_signal = modulate_frequency(pulse_shaped_symbols, self._fsk_deviation, self.fs)
+        iq_signal = modulate_frequency(pulse_shaped_symbols, self._fsk_deviation, self.sample_rate)
 
         # Append zeros
         iq_signal = np.concatenate(
@@ -96,7 +96,7 @@ class TransmitterBLE(Transmitter):
             raise ValueError(f"BLE transmission rate must be one of {self._valid_rates!r}")
         self._transmission_rate = rate
         self._fsk_deviation = self.transmission_rate * 0.25
-        self.sps: int = int(self.fs / self.transmission_rate)  # Samples per symbol
+        self.sps: int = int(self.sample_rate / self.transmission_rate)  # Samples per symbol
 
 
 class Transmitter802154(Transmitter):
@@ -127,12 +127,12 @@ class Transmitter802154(Transmitter):
         dtype=np.uint32,
     )
 
-    def __init__(self, fs: int | float):
+    def __init__(self, sample_rate: int | float):
         # Instance variables
-        self.fs = fs  # Sampling rate
+        self.sample_rate = sample_rate
         # For now, assume sampling rate is an integer multiple of transmission rate.
         # For generalisation, it's necessary to implement a rational resampler to generate the final IQ signal.
-        self.sps: int = int(2 * self.fs / self._transmission_rate)  # Samples per OQPSK symbol
+        self.sps: int = int(2 * self.sample_rate / self._transmission_rate)  # Samples per OQPSK symbol
 
     # Receives a chip uint32 array and returns IQ O-QPSK modulated complex signal.
     def modulate(self, chips: np.ndarray, zero_padding: int = 0) -> np.ndarray:

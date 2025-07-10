@@ -9,7 +9,7 @@ import numpy as np
 
 
 def successive_interference_cancellation(
-    mixed_signal: np.ndarray,
+    mixed_iq_signal: np.ndarray,
     receiver_high: object,  # Receiver for the stronger signal
     transmitter_high: object,  # Transmitter for the stronger signal
     receiver_low: object,  # Receiver for the weaker signal
@@ -25,37 +25,35 @@ def successive_interference_cancellation(
     4. Demodulate weaker signal from residual
     """
     # Demodulate interference
-    bit_samples = receiver_high.demodulate(mixed_signal)
-    interference_packets = receiver_high.process_phy_packet(bit_samples)
+    bit_samples_high = receiver_high.demodulate(mixed_iq_signal)
+    packets_high = receiver_high.process_phy_packet(bit_samples_high)
 
-    if not interference_packets:
+    if not packets_high:
         raise ValueError("No interference packets detected")
 
-    interference_packet = interference_packets[0]
+    packet_high = packets_high[0]
     if verbose:
-        print(interference_packet["payload"])
+        print(packet_high["payload"])
 
     # Synthesize interference
-    iq_baseband = transmitter_high.process_phy_payload(interference_packet["payload"])
-    synthesized_interference = transmitter_high.modulate(iq_baseband, zero_padding=500)
+    synthesised_high = transmitter_high.modulate_from_payload(packet_high["payload"], zero_padding=500)
 
     # Subtract interference
-    subtracted_signal = subtract_interference_wrapper(
-        affected=mixed_signal,
-        interference=synthesized_interference,
+    subtracted_iq_signal = subtract_interference_wrapper(
+        affected=mixed_iq_signal,
+        interference=synthesised_high,
         fs=sample_rate,
         freq_offsets=freq_range,
         verbose=verbose,
     )
 
     # Demodulate affected signal
-    bit_samples = receiver_low.demodulate(subtracted_signal)
-    affected_packets = receiver_low.process_phy_packet(bit_samples)
+    packets_low = receiver_low.demodulate_to_packet(subtracted_iq_signal)
 
-    if not affected_packets:
+    if not packets_low:
         raise ValueError("No affected packets detected after cancellation")
 
-    return affected_packets[0], subtracted_signal, synthesized_interference
+    return packets_low[0], subtracted_iq_signal, synthesised_high
 
 
 @click.command()
@@ -97,16 +95,16 @@ def main(affected, interference):
 
     if interference == "ble":
         interference_receiver = ReceiverBLE(fs=sample_rate)
-        interference_transmitter = TransmitterBLE(fs=sample_rate)
+        interference_transmitter = TransmitterBLE(sample_rate=sample_rate)
     else:
         interference_receiver = Receiver802154(fs=sample_rate)
-        interference_transmitter = Transmitter802154(fs=sample_rate)
+        interference_transmitter = Transmitter802154(sample_rate=sample_rate)
 
     iq_affected = read_iq_data(f"{relative_path}{affected_filename}")
 
     try:
         affected_packet, subtracted, synthesized_interference = successive_interference_cancellation(
-            mixed_signal=iq_affected,
+            mixed_iq_signal=iq_affected,
             receiver_high=interference_receiver,
             transmitter_high=interference_transmitter,
             receiver_low=affected_receiver,

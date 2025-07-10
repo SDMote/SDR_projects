@@ -22,9 +22,9 @@ from data_io import sic_save_simulation
 @click.option("--payload-len-low", default=200, type=int, help="Bytes in low-power payload.")
 @click.option("--num-trials", default=4, type=int, help="Number of Monte Carlo trials.")
 @click.option("--sampling-rate", default=10e6, type=float, help="Sampling rate in samples/second")
-def run_simulation(protocol_high, protocol_low, ble_rate, payload_len_high, payload_len_low, num_trials, sampling_rate):
+def run_simulation(protocol_high, protocol_low, ble_rate, payload_len_high, payload_len_low, num_trials, sample_rate):
     cfg = SimulationConfig(
-        sampling_rate=sampling_rate,  # Samples per second
+        sample_rate=sample_rate,  # Samples per second
         protocol_high=protocol_high,  # BLE or IEEE 802.15.4
         protocol_low=protocol_low,
         ble_rate=ble_rate,  # 1 Mb/s or 2 Mb/s
