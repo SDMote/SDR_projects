@@ -96,6 +96,7 @@ class TransmitterBLE(Transmitter):
             raise ValueError(f"BLE transmission rate must be one of {self._valid_rates!r}")
         self._transmission_rate = rate
         self._fsk_deviation = self.transmission_rate * 0.25
+        self.sps: int = int(self.fs / self.transmission_rate)  # Samples per symbol
 
 
 class Transmitter802154(Transmitter):
