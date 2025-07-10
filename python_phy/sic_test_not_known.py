@@ -1,48 +1,82 @@
 import click
 import matplotlib.pyplot as plt
 from data_io import read_iq_data
-from visualisation import plot_payload, subplots_iq, plot_ber_vs_frequency_offset
+from visualisation import plot_payload, subplots_iq
 from receiver import ReceiverBLE, Receiver802154
 from transmitter import TransmitterBLE, Transmitter802154
-from interference_utils import (
-    subtract_interference_wrapper,
-    compute_ber_vs_frequency,
-)
+from interference_utils import subtract_interference_wrapper
 import numpy as np
+
+
+def successive_interference_cancellation(
+    mixed_signal: np.ndarray,
+    receiver_high: object,  # Receiver for the stronger signal
+    transmitter_high: object,  # Transmitter for the stronger signal
+    receiver_low: object,  # Receiver for the weaker signal
+    sample_rate: float,
+    freq_range: range,
+    verbose: bool = True,
+) -> tuple:
+    """
+    Perform successive interference cancellation:
+    1. Demodulate stronger signal
+    2. Synthesise stronger signal
+    3. Subtract stronger signal from mixed signal
+    4. Demodulate weaker signal from residual
+    """
+    # Demodulate interference
+    bit_samples = receiver_high.demodulate(mixed_signal)
+    interference_packets = receiver_high.process_phy_packet(bit_samples)
+
+    if not interference_packets:
+        raise ValueError("No interference packets detected")
+
+    interference_packet = interference_packets[0]
+    if verbose:
+        print(interference_packet["payload"])
+
+    # Synthesize interference
+    iq_baseband = transmitter_high.process_phy_payload(interference_packet["payload"])
+    synthesized_interference = transmitter_high.modulate(iq_baseband, zero_padding=500)
+
+    # Subtract interference
+    subtracted_signal = subtract_interference_wrapper(
+        affected=mixed_signal,
+        interference=synthesized_interference,
+        fs=sample_rate,
+        freq_offsets=freq_range,
+        verbose=verbose,
+    )
+
+    # Demodulate affected signal
+    bit_samples = receiver_low.demodulate(subtracted_signal)
+    affected_packets = receiver_low.process_phy_packet(bit_samples)
+
+    if not affected_packets:
+        raise ValueError("No affected packets detected after cancellation")
+
+    return affected_packets[0], subtracted_signal, synthesized_interference
 
 
 @click.command()
 @click.argument("interference", type=click.Choice(["ble", "802154"]))
 @click.argument("affected", type=click.Choice(["ble", "802154"]))
 def main(affected, interference):
-    """
-    Subtract known interference synthesising higher power signal after demodulating it.
-
-    Affected must be either 'ble' or '802154'.
-    Interference can be 'ble', '802154'.
-    """
-    if affected == interference:
-        click.echo("Error: 'interference' must be different from 'affected'.")
-        return
 
     # Hardcoded filenames for now
     if affected == "ble":
         if interference == "802154":
             affected_filename = "BLE_802154_0dBm_8dBm_0MHz.dat"
-            interference_filename = "802154_8dBm_0MHz.dat"
         elif interference == "tone":
             affected_filename = "BLE_tone_0dBm_8dBm_0MHz.dat"
-            interference_filename = "tone_8dBm_0MHz_BLE.dat"
         else:
             click.echo("Unsupported interference for affected 'ble'.")
             return
     elif affected == "802154":
         if interference == "ble":
             affected_filename = "802154_BLE_0dBm_8dBm_0MHz.dat"
-            interference_filename = "BLE_8dBm_0MHz.dat"
         elif interference == "tone":
             affected_filename = "802154_tone_0dBm_8dBm_0MHz.dat"
-            interference_filename = "tone_8dBm_0MHz_802154.dat"
         else:
             click.echo("Unsupported interference for affected '802154'.")
             return
@@ -50,67 +84,49 @@ def main(affected, interference):
         click.echo("Unsupported value for 'affected'.")
         return
 
-    """Open reference packet (for BER comparison)"""
-    # Hardcoded parameters for now
-    fs: int | float = 10e6  # Hz
-    relative_path: str = "../capture_nRF/data/new/"
+    # Hardcoded parameters
+    sample_rate = 10e6
+    relative_path = "../capture_nRF/data/new/"
+    freq_range = range(0, 35000, 50)
 
-    # Open file, demodulate and get reference packet
+    # Initialise receivers/transmitters
     if affected == "ble":
-        affected_receiver = ReceiverBLE(fs=fs)
+        affected_receiver = ReceiverBLE(fs=sample_rate)
     else:
-        affected_receiver = Receiver802154(fs=fs)
+        affected_receiver = Receiver802154(fs=sample_rate)
 
-    """Open affected and interference files"""
+    if interference == "ble":
+        interference_receiver = ReceiverBLE(fs=sample_rate)
+        interference_transmitter = TransmitterBLE(fs=sample_rate)
+    else:
+        interference_receiver = Receiver802154(fs=sample_rate)
+        interference_transmitter = Transmitter802154(fs=sample_rate)
+
     iq_affected = read_iq_data(f"{relative_path}{affected_filename}")
 
-    """This is different from the known interference scenario, the interference is demodulated first and then modulated."""
-    if interference == "ble":
-        interference_receiver = ReceiverBLE(fs=fs)
-        interference_transmitter = TransmitterBLE(fs=fs)
-    else:
-        interference_receiver = Receiver802154(fs=fs)
-        interference_transmitter = Transmitter802154(fs=fs)
+    try:
+        affected_packet, subtracted, synthesized_interference = successive_interference_cancellation(
+            mixed_signal=iq_affected,
+            receiver_high=interference_receiver,
+            transmitter_high=interference_transmitter,
+            receiver_low=affected_receiver,
+            sample_rate=sample_rate,
+            freq_range=freq_range,
+            verbose=True,
+        )
+    except ValueError as e:
+        click.echo(f"Error: {e}")
+        return
 
-    # Demodulate the interference
-    bit_samples = interference_receiver.demodulate(iq_affected)  # From IQ samples to hard decisions
-    interference_packet: list[dict] = interference_receiver.process_phy_packet(bit_samples)
-    interference_packet: dict = interference_packet[0]
-    print(interference_packet["payload"])
-
-    # Synthesise the interference
-    iq_interference = interference_transmitter.process_phy_payload(interference_packet["payload"])
-    iq_interference = interference_transmitter.modulate(iq_interference, zero_padding=500)
-
-    iq_interference_known = read_iq_data(f"{relative_path}{interference_filename}")
-    # iq_interference = iq_interference_known
-
-    """Subtract the synthesised interference and demodulate (blind analysis)"""
-    freq_range = range(0, 35000, 50)
-    subtracted = subtract_interference_wrapper(
-        affected=iq_affected, interference=iq_interference, fs=fs, freq_offsets=freq_range, verbose=True
-    )
+    # Plot results
     subplots_iq(
-        [iq_affected, iq_interference, subtracted], fs, ["Interfered packet", "Interference", "Subtracted"], show=False
+        [iq_affected, synthesized_interference, subtracted],
+        sample_rate,
+        ["Interfered packet", "Synthesized Interference", "Subtracted"],
+        show=False,
     )
+    plot_payload(affected_packet)
 
-    # Initialise the receiver and process data
-    bit_samples = affected_receiver.demodulate(subtracted)  # From IQ samples to hard decisions
-    reference_packet: list[dict] = affected_receiver.process_phy_packet(bit_samples)  # From hard decisions to packets
-    if reference_packet:
-        reference_packet: dict = reference_packet[0]
-        plot_payload(reference_packet)
-
-    # """BER analysis with frequency variations (non-blind analysis)"""
-    # bit_error_rates = compute_ber_vs_frequency(
-    #     freq_range,
-    #     affected=iq_affected,
-    #     interference=iq_interference,
-    #     fs=fs,
-    #     reference_packet=reference_packet,
-    #     receiver=affected_receiver,
-    # )
-    # plot_ber_vs_frequency_offset(freq_range, bit_error_rates, show=False)
     plt.show()
 
 
