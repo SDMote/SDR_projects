@@ -56,9 +56,9 @@ class Receiver(ABC):
     def set_symbol_sync_parameters(  # Set specific symbol sync parameters
         self,
         TED_gain: float = 1.0,
-        loop_BW: float = 0.045,
+        loop_BW: float = 4.5e-3,
         damping: float = 1.0,
-        max_deviation: float = 1.5,
+        max_deviation: float = 0,
     ) -> None:
         self._symbol_sync_param_TED_gain = TED_gain
         self._symbol_sync_param_loop_BW = loop_BW
