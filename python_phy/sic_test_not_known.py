@@ -12,8 +12,8 @@ import numpy as np
 
 
 @click.command()
-@click.argument("affected", type=click.Choice(["ble", "802154"]))
 @click.argument("interference", type=click.Choice(["ble", "802154"]))
+@click.argument("affected", type=click.Choice(["ble", "802154"]))
 def main(affected, interference):
     """
     Subtract known interference synthesising higher power signal after demodulating it.
@@ -27,7 +27,6 @@ def main(affected, interference):
 
     # Hardcoded filenames for now
     if affected == "ble":
-        reference_filename = "BLE_0dBm.dat"
         if interference == "802154":
             affected_filename = "BLE_802154_0dBm_8dBm_0MHz.dat"
             interference_filename = "802154_8dBm_0MHz.dat"
@@ -38,7 +37,6 @@ def main(affected, interference):
             click.echo("Unsupported interference for affected 'ble'.")
             return
     elif affected == "802154":
-        reference_filename = "802154_0dBm.dat"
         if interference == "ble":
             affected_filename = "802154_BLE_0dBm_8dBm_0MHz.dat"
             interference_filename = "BLE_8dBm_0MHz.dat"
@@ -58,15 +56,10 @@ def main(affected, interference):
     relative_path: str = "../capture_nRF/data/new/"
 
     # Open file, demodulate and get reference packet
-    iq_reference = read_iq_data(f"{relative_path}{reference_filename}")
     if affected == "ble":
         affected_receiver = ReceiverBLE(fs=fs)
     else:
         affected_receiver = Receiver802154(fs=fs)
-
-    bit_samples = affected_receiver.demodulate(iq_reference)  # From IQ samples to hard decisions
-    reference_packet: list[dict] = affected_receiver.process_phy_packet(bit_samples)  # From hard decisions to packets
-    reference_packet: dict = reference_packet[0]
 
     """Open affected and interference files"""
     iq_affected = read_iq_data(f"{relative_path}{affected_filename}")
