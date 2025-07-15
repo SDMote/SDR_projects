@@ -154,7 +154,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/diego/Documents/SDR_projects/capture_nRF/data/802154_short_includeCRC.dat
+    file: /home/diego/Documents/SDR_projects/capture_nRF/data/new/802154_0dBm.dat
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
