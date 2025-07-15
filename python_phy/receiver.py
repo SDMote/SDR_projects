@@ -165,11 +165,16 @@ class ReceiverBLE(Receiver):
             payload_start: int = preamble + 2 * 8  # S0 + length byte
             header = pack_bits_to_uint8(bit_samples[preamble:payload_start])  # Whitened
             header, lsfr = ble_whitening(header)  # De-whitened, length_byte includes S0
-            payload_length: int = header[-1]  # Payload length in bytes, without CRC
+            payload_length: int = int(header[-1])  # Payload length in bytes, without CRC
 
             # Payload reading and de-whitening
             total_bytes: int = payload_length + self._crc_size
-            payload_and_crc = pack_bits_to_uint8(bit_samples[payload_start : payload_start + total_bytes * 8])
+            payload_and_crc_end = payload_start + total_bytes * 8
+            if payload_and_crc_end > len(bit_samples):
+                print("something strange is happening here")
+                return []
+
+            payload_and_crc = pack_bits_to_uint8(bit_samples[payload_start:payload_and_crc_end])
             payload_and_crc, _ = ble_whitening(payload_and_crc, lsfr)
 
             # CRC check
