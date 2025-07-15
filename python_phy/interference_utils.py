@@ -22,14 +22,14 @@ def pad_interference(
     if len(iq_samples_interference) > max_interference_length:
         iq_samples_interference = iq_samples_interference[:max_interference_length]
 
-    # Compute the necessary zero padding at the end
+    # Zero padding at the end
     end_padding = len(iq_samples) - (len(iq_samples_interference) + delay_zero_padding)
 
     padded_interference = np.concatenate(
         [
-            np.zeros(delay_zero_padding, dtype=iq_samples_interference.dtype),  # Front padding
-            iq_samples_interference,  # Interference signal
-            np.zeros(end_padding, dtype=iq_samples_interference.dtype),  # End padding
+            np.zeros(delay_zero_padding, dtype=iq_samples_interference.dtype),
+            iq_samples_interference,
+            np.zeros(end_padding, dtype=iq_samples_interference.dtype),
         ]
     )
 
@@ -41,10 +41,10 @@ def multiply_by_complex_exponential(
     input_signal: np.ndarray, fs: float, freq: float, phase: float = 0, amplitude: float = 1, offset: complex = 0
 ) -> np.ndarray:
     """Multiply an input complex exponential."""
-    t = np.arange(input_signal.size) / fs  # Time vector
+    t = np.arange(input_signal.size) / fs
     complex_cosine = offset + amplitude * np.exp(1j * (2 * np.pi * freq * t + phase))
 
-    return input_signal * complex_cosine  # Return multiplication
+    return input_signal * complex_cosine
 
 
 # Correlation wrapper to estimate where an interference is on an affected packet.
