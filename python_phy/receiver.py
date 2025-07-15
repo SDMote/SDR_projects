@@ -171,7 +171,7 @@ class ReceiverBLE(Receiver):
             total_bytes: int = payload_length + self._crc_size
             payload_and_crc_end = payload_start + total_bytes * 8
             if payload_and_crc_end > len(bit_samples):
-                print("something strange is happening here")
+                # Discard this packet, it was corrupted by noise
                 return []
 
             payload_and_crc = pack_bits_to_uint8(bit_samples[payload_start:payload_and_crc_end])
