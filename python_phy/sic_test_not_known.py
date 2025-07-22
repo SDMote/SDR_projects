@@ -35,7 +35,7 @@ def successive_interference_cancellation(
     if verbose:
         print(packet_high["payload"])
 
-    # Synthesize interference
+    # Synthesise interference
     synthesised_high = transmitter_high.modulate_from_payload(packet_high["payload"], zero_padding=500)
 
     # Subtract interference
