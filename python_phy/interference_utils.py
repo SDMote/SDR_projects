@@ -3,7 +3,7 @@ import scipy
 import concurrent.futures
 from demodulation import TEDType
 from receiver import DemodulationType, Receiver, ReceiverBLE, Receiver802154, ReceiverType
-from snr_related import add_awgn_signal_present
+from snr_related import add_awgn_signal_present, flat_fader_impl
 
 
 # Pads iq_samples_interference with zeros at the beginning (delay_zero_padding)
@@ -255,6 +255,109 @@ def pdr_vs_snr_analysis_parallel(
                     helper_process_noise_realisation,
                     iq_samples,
                     snr,
+                    sample_interval,
+                    receiver,
+                    demodulation_type,
+                    ted_type,
+                )
+                for _ in range(noise_realisations)
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                result = future.result()
+                if result == "delivered":
+                    delivered_count += 1
+                elif result == "preamble_loss":
+                    preamble_loss_count += 1
+                elif result == "crc_failure":
+                    crc_failure_count += 1
+
+        results[snr] = {
+            "pdr_ratio": delivered_count / noise_realisations,
+            "preamble_loss_ratio": preamble_loss_count / noise_realisations,
+            "crc_failure_ratio": crc_failure_count / noise_realisations,
+        }
+
+    return results
+
+
+# Process one noise realisation: adds noise, demodulates, and categorises the packet result.
+def helper_process_noise_realisation_risian(
+    iq_samples: np.ndarray,
+    snr: float,
+    fading_N_sinusoids: int,
+    fading_fDts: float,
+    rician_K: float,
+    fading_seed: int,
+    sample_interval: tuple,
+    receiver: Receiver,
+    demodulation_type: DemodulationType,
+    ted_type: TEDType,
+) -> str:
+    """Process one noise realisation: adds noise, demodulates, and categorises the packet result."""
+    
+    iq_samples_fade = flat_fader_impl(iq_samples, fading_N_sinusoids, fading_fDts, True, rician_K, fading_seed)
+    iq_noisy = add_awgn_signal_present(iq_samples_fade, snr_db=snr, sample_interval=sample_interval)
+
+    try:
+        received_packets = receiver.demodulate_to_packet(
+            iq_noisy, demodulation_type=demodulation_type, ted_type=ted_type
+        )
+    except ValueError as e:
+        if "The binary list" in str(e):
+            return "preamble_loss"
+        else:
+            raise
+
+    if not received_packets:
+        return "preamble_loss"
+    elif not received_packets[0]["crc_check"]:
+        return "crc_failure"
+    else:
+        return "delivered"
+
+
+# Computes the PDR and its standard deviation over a range of SNR values using concurrent futures.
+def pdr_vs_snr_analysis_parallel_risian(
+    iq_samples: np.ndarray,
+    snr_range: range,
+    fading_N_sinusoids: int,
+    fading_fDts: float,
+    rician_K: float,
+    fading_seed: int,
+    sample_interval: tuple,
+    fs: float,
+    receiver_type: ReceiverType,
+    demodulation_type: DemodulationType,
+    ted_type: TEDType,
+    noise_realisations: int,
+) -> dict:
+    """Computes the PDR and its standard deviation over a range of SNR values using concurrent futures."""
+    receiver_classes: dict[str, type] = {"BLE": ReceiverBLE, "IEEE802154": Receiver802154}
+    try:
+        # Create a new receiver for each SNR value in the worker below
+        receiver_factory = receiver_classes[receiver_type]
+    except KeyError:
+        raise ValueError(f"Invalid receiver type '{receiver_type}'. Choose from {list(receiver_classes.keys())}")
+
+    results: dict = {}
+
+    for snr in snr_range:
+        receiver = receiver_factory(fs)
+        delivered_count = 0
+        preamble_loss_count = 0
+        crc_failure_count = 0
+
+        # Use ProcessPoolExecutor for CPU-bound tasks
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = [
+                executor.submit(
+                    helper_process_noise_realisation_risian,
+                    iq_samples,
+                    snr,
+                    fading_N_sinusoids,
+                    fading_fDts,
+                    rician_K,
+                    fading_seed,
                     sample_interval,
                     receiver,
                     demodulation_type,
