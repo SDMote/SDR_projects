@@ -281,7 +281,7 @@ def pdr_vs_snr_analysis_parallel(
 
 
 # Process one noise realisation: adds noise, demodulates, and categorises the packet result.
-def helper_process_noise_realisation_risian(
+def helper_process_noise_realisation_rician(
     iq_samples: np.ndarray,
     snr: float,
     fading_N_sinusoids: int,
@@ -294,7 +294,7 @@ def helper_process_noise_realisation_risian(
     ted_type: TEDType,
 ) -> str:
     """Process one noise realisation: adds noise, demodulates, and categorises the packet result."""
-    
+
     iq_samples_fade = flat_fader_impl(iq_samples, fading_N_sinusoids, fading_fDts, True, rician_K, fading_seed)
     iq_noisy = add_awgn_signal_present(iq_samples_fade, snr_db=snr, sample_interval=sample_interval)
 
@@ -317,7 +317,7 @@ def helper_process_noise_realisation_risian(
 
 
 # Computes the PDR and its standard deviation over a range of SNR values using concurrent futures.
-def pdr_vs_snr_analysis_parallel_risian(
+def pdr_vs_snr_analysis_parallel_rician(
     iq_samples: np.ndarray,
     snr_range: range,
     fading_N_sinusoids: int,
@@ -351,7 +351,7 @@ def pdr_vs_snr_analysis_parallel_risian(
         with concurrent.futures.ProcessPoolExecutor() as executor:
             futures = [
                 executor.submit(
-                    helper_process_noise_realisation_risian,
+                    helper_process_noise_realisation_rician,
                     iq_samples,
                     snr,
                     fading_N_sinusoids,
